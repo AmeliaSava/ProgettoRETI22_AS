@@ -1,0 +1,14 @@
+# Commenti con "#"
+
+# Porte per la comunciazione col Server
+
+TCPSERVERPORT 6666
+UDPSERVERPORT 6668
+
+RMIPORTREGISTER 5555
+RMIPORTFOLLOWERS 5556
+
+# Indirizzi del server
+
+SERVERNAME 127.0.0.1
+MULTICAST 228.5.6.7

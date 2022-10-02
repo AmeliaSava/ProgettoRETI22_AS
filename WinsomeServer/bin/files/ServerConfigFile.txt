@@ -1,0 +1,22 @@
+
+# Usare "#" per commentare
+
+# Intervallo di tempo che passa tra il calco di una ricompensa e l'altra
+# L'intervallo e' espresso in secondi
+
+REWARDTIME 5
+
+# Percentuale della ricompensa che spetta all'autore
+
+AUTHP 60
+
+# Numeri di porta del server
+
+TCPPORT 6666
+UDPPORT 6669
+
+# Indirizzi
+
+MULTICASTADD 228.5.6.7
+
+#timeout
