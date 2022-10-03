@@ -118,10 +118,42 @@ public class WinServerStorage {
     	return null;
     }
     
-    public void followUser(UUID userFollowed, UUID userFollowing) {
-    	//cerco l'id dell'utente che vuole seguire
-    	//aggiunga alla lista dei seguiti
-    	//mando notifica a chi e' stato seguito
+    public void followUser(String userFollowed, String userFollowing, SelectionKey key) {
+    	
+    	WinUser curUser = userMap.get(userFollowing);
+    	
+    	//L'utente non e' registrato
+    	if(curUser == null) {
+    		System.err.println("User not found");
+    		key.attach("CURUSER-NOT-FOUND");
+    		return;
+    	}
+    	
+    	// L'utente non era online
+    	if(onlineUsers.containsKey(userFollowing)) {
+    		// Controllo che l'utente da seguire esista
+    		if(userMap.containsKey(userFollowed)) {
+    			
+    			// Controllo che l'utente corrente non stia gia' seguendo l'utente da seguire
+    			int r;
+    			
+    			if((r = curUser.followUser(userFollowed)) == 0) {
+    				System.out.println(curUser.getUsername() + " followed " + userMap.get(userFollowing).getfollowedUsers().get(0));
+    				key.attach("FOLLOW-OK");
+    			} else {
+    				key.attach("ALREADY-FOLLOWING");
+    			}
+    			
+    		} else {
+    			key.attach("USER-NOT-FOUND");
+    			return;
+    		}
+    		
+    	} else {
+    			key.attach("CURUSER-NOT-FOUND");
+    			return;
+    		}
+
     	return;
     }
     

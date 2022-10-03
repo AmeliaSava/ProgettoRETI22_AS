@@ -1,31 +1,30 @@
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteObject;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class NotificationServiceServerImpl extends RemoteObject implements NotificationServiceServer {
 	
-	private List<NotificationServiceClient> registredClients;
+	//private List<NotificationServiceClient> registredClients;
+	private ConcurrentHashMap<String, NotificationServiceClient> registeredClients;
 	
 	public NotificationServiceServerImpl(ConcurrentHashMap<String, WinUser> onlineUsers) {
 		super();
-		registredClients = new ArrayList<NotificationServiceClient>();
+		//registredClients = new ArrayList<NotificationServiceClient>();
+		registeredClients = new ConcurrentHashMap<String, NotificationServiceClient>();
 	}
 
 	@Override
-	public synchronized void registerForCallback(NotificationServiceClient clientInterface) throws RemoteException {
-		if(!registredClients.contains(clientInterface)) {
-			registredClients.add(clientInterface);
-			System.out.println("new client");
-		}
+	public void registerForCallback(NotificationServiceClient clientInterface, String username) throws RemoteException {
+		
+		registeredClients.putIfAbsent(username, clientInterface);
+		System.out.println("new client");
 		
 	}
 
 	@Override
-	public synchronized void unregisterForCallback(NotificationServiceClient clientInterface) throws RemoteException {
-		if(registredClients.remove(clientInterface)) {
+	public void unregisterForCallback(NotificationServiceClient clientInterface, String usename) throws RemoteException {
+		
+		if(registeredClients.remove(clientInterface, usename)) {
 			System.out.println("removed client");
 		} else {
 			System.out.println("unable to remove client");
@@ -33,18 +32,9 @@ public class NotificationServiceServerImpl extends RemoteObject implements Notif
 		
 	}
 	
-	public void follow(String username) throws RemoteException{
-		doCallbacks(username);
+	public void follow(String username, String follower) throws RemoteException {
+		NotificationServiceClient client = (NotificationServiceClient) registeredClients.get(username);
+		client.notifyFollow(username, follower);
 	}
-	
-	private synchronized void doCallbacks(String username) throws RemoteException { 
-		System.out.println("Starting callbacks.");
-		Iterator i = registredClients.iterator( );
-		while (i.hasNext()) {
-			NotificationServiceClient client = (NotificationServiceClient) i.next();
-			client.notifyFollow(username);
-		} 
-		System.out.println("Callbacks complete.");
-	} 
 	 
 }

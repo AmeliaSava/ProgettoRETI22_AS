@@ -1,15 +1,19 @@
 import java.nio.channels.SelectionKey;
+import java.rmi.RemoteException;
 
 public class WinServerWorker implements Runnable {
 
     private String operation;
     private SelectionKey keyWorker;
     private WinServerStorage serverStorage;
+    
+    private NotificationServiceServerImpl followersRMI;
 
-    public WinServerWorker(String operation, SelectionKey key, WinServerStorage serverStorage) {
+    public WinServerWorker(String operation, SelectionKey key, WinServerStorage serverStorage, NotificationServiceServerImpl followersRMI) {
         this.operation = operation;
         this.keyWorker = key;
         this.serverStorage = serverStorage;
+        this.followersRMI = followersRMI;
     }
 
     @Override
@@ -40,6 +44,25 @@ public class WinServerWorker implements Runnable {
             		System.out.println("list following");
             	}
             	break;
+            case "follow":
+            	System.out.println(args[2] + " wants to follow " + args[1]);
+            	
+            	serverStorage.followUser(args[1], args[2], keyWorker);
+            	
+                // Se l'utente ne ha seguito un'altro
+                if(keyWorker.attachment().equals("FOLLOW-OK")) {
+                	// notifico quell'utente tramite RMI
+                	try {
+						followersRMI.follow(args[1], args[2]);
+					} catch (RemoteException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+                }
+                
+            	break;
+            case "unfollow":
+            	break;
             case "post":
                 //come mettere l'autore di un post?
             	String[] elements = operation.split("'");
@@ -53,12 +76,9 @@ public class WinServerWorker implements Runnable {
                     keyWorker.interestOps(SelectionKey.OP_WRITE);
                 }
                 break;
-            default:
-                // anche questo mi sa che lo faccio prima
-                System.out.println("ERROR: " + args[0] + "unknown operation requested");
         }
         
-        // Comunico al main che c'e' una risposta da mandare
+        // Comunico al server che c'e' una risposta da mandare
         keyWorker.interestOps(SelectionKey.OP_WRITE);
     }
 }

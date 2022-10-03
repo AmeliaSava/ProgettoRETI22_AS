@@ -3,7 +3,7 @@ import java.rmi.RemoteException;
 
 public interface NotificationServiceServer extends Remote{
 
-	public void registerForCallback(NotificationServiceClient clientInterface) throws RemoteException;
-	
-	public void unregisterForCallback(NotificationServiceClient clientInterface) throws RemoteException;
+	void registerForCallback(NotificationServiceClient clientInterface, String username) throws RemoteException;
+
+	void unregisterForCallback(NotificationServiceClient clientInterface, String usename) throws RemoteException;
 }

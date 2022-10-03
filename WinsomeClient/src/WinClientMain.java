@@ -19,8 +19,12 @@ public class WinClientMain {
 
     private static int TCPserverport;
     private static int UDPserverport;
+    private static int RMIregisterport;
+    private static int RMIfollowersport;
     private static String hostAddress;
     private static String multicastAddress;
+    
+    private static SocketChannel clientSocket;
     
     private static RegistrationService serverRegister;
     private static Remote RemoteRegister;
@@ -30,7 +34,7 @@ public class WinClientMain {
     
     // dati dell'utente
     private String currentUser = null;
-    private List<String> followedUsers;
+    private List<String> listFollowers;
     
     // Thread per la ricezione degli aggiornamenti sul portafoglio
     private WinClientWallUp WalletUpdate;
@@ -61,6 +65,12 @@ public class WinClientMain {
                         case "UDPSERVERPORT":
                         	UDPserverport = Integer.parseInt(st.nextToken());
                         	break;
+                        case "RMIPORTREGISTER":
+                        	RMIregisterport = Integer.parseInt(st.nextToken());
+                        	break;
+                        case "RMIPORTFOLLOWERS":
+                        	RMIfollowersport = Integer.parseInt(st.nextToken());
+                        	break;	
                         case "SERVERNAME":
                             hostAddress = st.nextToken();
                             break;
@@ -75,14 +85,40 @@ public class WinClientMain {
 
     }
     
+    private void connect() {
+        //mi connetto al server
+        SocketAddress address = new InetSocketAddress(hostAddress, TCPserverport);
+        
+		try {
+			//ATTENZIONE timeout
+			clientSocket = SocketChannel.open(address);
+			//aspetto che la connessione sia stabilita
+			while(!clientSocket.finishConnect()) {}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+    }
+    
+    private void registrationRegister() {
+        try {
+        	Registry registry1 = LocateRegistry.getRegistry(RMIregisterport);
+        	RemoteRegister = registry1.lookup("REGISTER-SERVER");
+        	serverRegister = (RegistrationService) RemoteRegister;
+        } catch (Exception e) {
+        	System.err.println("ERROR: invoking object method " + e.toString() + e.getMessage());
+        	e.printStackTrace();
+        }
+    }
+    
 	private void callbackRegister() {
 
 		try {
-			Registry registry2 = LocateRegistry.getRegistry(5556);
+			Registry registry2 = LocateRegistry.getRegistry(RMIfollowersport);
 			server = (NotificationServiceServer) registry2.lookup("FOLLOWERS-SERVER");
-			NotificationServiceClient followCallback = new NotificationServiceClientImpl();
+			NotificationServiceClient followCallback = new NotificationServiceClientImpl(listFollowers);
 			stub2 = (NotificationServiceClient) UnicastRemoteObject.exportObject(followCallback, 0);
-			server.registerForCallback(stub2);
+			server.registerForCallback(stub2, currentUser);
 		} catch (RemoteException e) {
 			System.err.println("ERROR: callback register " + e.getMessage());
 			e.printStackTrace();
@@ -104,7 +140,7 @@ public class WinClientMain {
         WallUp.start();
         return;
 	}
-	
+	 
 	/*
 	 * Ferma il thread che attende la notifica sul calcolo delle ricompense
 	 */
@@ -122,41 +158,24 @@ public class WinClientMain {
         winClient.configClient();
         
         // Inizializzo la lista che verra' utilizzata per salvare i follower dell'utente
-        winClient.followedUsers = new ArrayList<String>();
+        winClient.listFollowers = new ArrayList<String>();
 
         System.out.println("Server port:" + TCPserverport);
         System.out.println("Server name:" + hostAddress);
         
-
+        winClient.registrationRegister();
         
-        try {
-        	Registry registry1 = LocateRegistry.getRegistry(5555);
-        	RemoteRegister = registry1.lookup("REGISTER-SERVER");
-        	serverRegister = (RegistrationService) RemoteRegister;
-        } catch (Exception e) {
-        	System.err.println("ERROR: invoking object method " + e.toString() + e.getMessage());
-        	e.printStackTrace();
-        }
-
-
-
-        try {
-            //mi connetto al server
-            SocketAddress address = new InetSocketAddress(hostAddress, TCPserverport);
-            SocketChannel clientSocket = SocketChannel.open(address);
-            //timeout
-            //aspetto che la connessione sia stabilita
-            while(!clientSocket.finishConnect()) {}
-                                                          
-            Scanner scan = new Scanner(System.in);
+        winClient.connect();
+        
+		try {
+	        Scanner scan = new Scanner(System.in);
 			
-            System.out.println("Do something >");
+	        System.out.println("Do something >");
 			
-            String action;
+	        String action;
 			while(scan.hasNextLine() && !((action = scan.nextLine()).equals("exit"))) {
 									
-				//if(action.equals("exit")) scan.close();
-
+				
 				//splitto la stringa per fare dei controlli iniziali anche se poi la invio completa al server
 				String[] command = action.split(" ");
 				System.out.println("User requested " + command[0]);
@@ -166,48 +185,49 @@ public class WinClientMain {
 				 * A seconda del tipo di operazione richiesta dal client vado a controllare che la richiesta
 				 * sia corretta in ogni sua componente prima di inviarla al server
 				 */
-					
+				
 				switch (command[0]) {
 						
 					case "register":
 							
-					       if(command.length > 8 || command.length < 4) {
-					           System.err.println("ERROR: correct register <username> <password> <tag1 tag2... tag5> tag list too long max 5 tags");
-					           break;
-					       }
+						if(command.length > 8 || command.length < 4) {
+							System.err.println("ERROR: correct register <username> <password> <tag1 tag2... tag5> tag list too long max 5 tags");
+					    	break;
+						}
 					        
-					       // Creo la lista di tag da inviare al server
-					       // Tutti i tag vengono convertiti in minuscolo
-					       // Nel caso di un tag ripetuto viene ignorato e non inserito
-					       List<String> tagList = new ArrayList<String>();
+						// Creo la lista di tag da inviare al server
+					 	// Tutti i tag vengono convertiti in minuscolo
+						// Nel caso di un tag ripetuto viene ignorato e non inserito
+						List<String> tagList = new ArrayList<String>();
 					        
-					       for(int i = 3; i < command.length; i++) {
-					       	if(!tagList.contains(command[i].toLowerCase()))
-					       		tagList.add(command[i].toLowerCase());
-					       }
+						for(int i = 3; i < command.length; i++) {
+					    	if(!tagList.contains(command[i].toLowerCase()))
+					    		tagList.add(command[i].toLowerCase());
+					    }
 					        
-					       // Controllo se la registrazione e' andata a buon fine
-					       if(serverRegister.registerUser(command[1], command[2], tagList) == 0)
-					       	System.out.println("User " + command[1] + " has been registred! You can now log in...");
-					       else System.err.println("Username already in use, try logging in or choose another username");
+						// Controllo se la registrazione e' andata a buon fine
+						if(serverRegister.registerUser(command[1], command[2], tagList) == 0)
+							System.out.println("User " + command[1] + " has been registred! You can now log in...");
+							else System.err.println("Username already in use, try logging in or choose another username");
 						break;
-					  case "login":
-	
+						
+					case "login":
+
 					        if(command.length != 3) {
 					            System.out.println("ERROR: correct login <username> <password>");
 					            break;
 					        }
-	
+
 					        WinUtils.send(action, clientSocket);
-	
+
 					        String loginResponse = WinUtils.receive(clientSocket);
-	
+
 					        if(loginResponse.equals("LOGIN-OK")) {
 					            System.out.println("Welcome " + command[1] + " you are now logged in!");
 					            winClient.currentUser = command[1];
 					            //metodo per recuperare followers gia' esistenti
 					            //possibile mandarli tutti pianopiano con RMI?
-					            //winClient.followedUsers = new ArrayList<String>();
+					            //winClient.listFollowers = new ArrayList<String>();
 					            winClient.callbackRegister();
 					            winClient.connectMulticast();
 					        } else if(loginResponse.equals("USER-NOT-FOUND")) {
@@ -223,13 +243,13 @@ public class WinClientMain {
 					    		System.err.println("No user logged in, cannot log out");
 					    	}
 					    	
-					    	// Creo la stringa da inviare al server con "logout <username>
+					    	// Creo la stringa da inviare al server con "logout <username>"
 					    	
-					    	String toSend = command[0] + " " + winClient.currentUser;
+					    	String logout = command[0] + " " + winClient.currentUser;
 					    	
-					    	System.out.println(toSend);
+					    	System.out.println(logout);
 					    	
-					    	WinUtils.send(toSend, clientSocket);
+					    	WinUtils.send(logout, clientSocket);
 					    	
 					    	String logoutResponse = WinUtils.receive(clientSocket);
 					    	
@@ -237,19 +257,19 @@ public class WinClientMain {
 					    	// e mi disconnetto da multicast e callback
 					    	if(logoutResponse.equals("LOGOUT-OK")) {
 					            System.out.println(winClient.currentUser + " logged out");
-					            winClient.currentUser = null;					
-					            winClient.followedUsers.clear();
 					            
 					            try {
-					        		server.unregisterForCallback(stub2);
+					        		server.unregisterForCallback(stub2, winClient.currentUser);
 					        	} catch (RemoteException e) {
 					        		e.printStackTrace();
 					        	}
 					            
+					            winClient.currentUser = null;					
+					            winClient.listFollowers.clear();
 					            winClient.disconnectMulticast();
 					            
 					        } else if(logoutResponse.equals("USER-NOT-FOUND")) {
-					        	System.err.println("No user logged in, cannot log out");
+					        	System.err.println("Username not found, login or register");
 					        }
 					    	
 					        break;
@@ -263,9 +283,9 @@ public class WinClientMain {
 					        
 					        
 					        if(command[1].equals("followers")) {
-					        	System.out.println("Users you are following:");
+					        	System.out.println("Your followers:");
 					        	
-					        	for(String user : winClient.followedUsers) {
+					        	for(String user : winClient.listFollowers) {
 					        		System.out.println(user);
 					        	}
 					        	
@@ -273,8 +293,34 @@ public class WinClientMain {
 					        	WinUtils.send(action, clientSocket);
 					        }
 					    	break;
+					    case "follow":
+					    	
+					    	if(winClient.currentUser == null) {
+					    		System.err.println("User not logged in");
+					    	}
+					    	
+					    	// Creo la stringa da inviare al server con "follow <username da seguire> <username utente corrente>"
+					    	
+					    	String follow = action + " " + winClient.currentUser;
+					    	
+					    	WinUtils.send(follow, clientSocket);
+					    	
+					    	String followResponse = WinUtils.receive(clientSocket);
+					    	
+					    	if(followResponse.equals("FOLLOW-OK")) {
+					            System.out.println(winClient.currentUser + " you are now following " + command[1]);					           					            
+					        } else if(followResponse.equals("USER-NOT-FOUND")) {
+					        	System.err.println("The user you tried to follow does not exist");
+					        } else if(followResponse.equals("CURUSER-NOT-FOUND")) {
+					        	System.err.println("Username not found, login or register");
+					        } else if(followResponse.equals("ALREADY-FOLLOWING")) {
+					        	System.err.println("You are already following this user");
+					        }
+					    	break;
+					    case "unfollow":
+					    	break;
 					    case "post":
-	
+
 					        //catturo i dati del post
 					    	String[] elements = action.split("'");
 					    	
@@ -287,31 +333,28 @@ public class WinClientMain {
 					            System.out.println("ERROR: format title must be under 20 characters content under 500");
 					            break;
 					        }
-	
+
 					        WinUtils.send(action, clientSocket);
-	
+
 					        String postResponse = WinUtils.receive(clientSocket);
-	
+
 					        if(postResponse.equals("OK")) {
 					            System.err.println("You posted! Honk Honk!");
 					        }
-	
+
 					        break;
-					    //case "exit":
-					    	//online = false;
-					    	//break;
+
 					    default:
 					        System.out.println("Command " + command[0] + " not recognized");
 					}
-            }
+	        }
 			System.out.println("close");
 			scan.close();
-			
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+                
         System.exit(0);
     }
 

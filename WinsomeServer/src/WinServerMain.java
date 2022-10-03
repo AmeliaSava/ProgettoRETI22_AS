@@ -21,8 +21,11 @@ import java.util.concurrent.*;
 public class WinServerMain {
 
     private static int TCPport;
-    private static int RMIport;
     private static int UDPport;
+    
+    private static int RMIportregister;
+    private static int RMIportfollowers;
+    
     private static int rewardTime;
     private static String multicastAddress;
     private static WinServerStorage serverStorage;
@@ -62,7 +65,10 @@ public class WinServerMain {
                             TCPport = Integer.parseInt(st.nextToken());
                             break;
                         case "RMIPORTREGISTER":
-                        	RMIport = Integer.parseInt(st.nextToken());
+                        	RMIportregister = Integer.parseInt(st.nextToken());
+                        	break;
+                        case "RMIPORTFOLLOWERS":
+                        	RMIportfollowers = Integer.parseInt(st.nextToken());
                         	break;
                         case "UDPPORT":
                         	UDPport = Integer.parseInt(st.nextToken());
@@ -96,8 +102,8 @@ public class WinServerMain {
             RegistrationServiceImpl registerRMI = new RegistrationServiceImpl(serverStorage);
 			RegistrationService stub1 = (RegistrationService) UnicastRemoteObject.exportObject(registerRMI, 0);
 			// creo un registry sulla porta dedicata all'RMI
-			LocateRegistry.createRegistry(RMIport);
-			Registry r = LocateRegistry.getRegistry(RMIport);
+			LocateRegistry.createRegistry(RMIportregister);
+			Registry r = LocateRegistry.getRegistry(RMIportregister);
 			// pubblico lo stub nel registry
 			r.rebind("REGISTER-SERVER", stub1);
 		} catch (RemoteException e) {
@@ -111,8 +117,8 @@ public class WinServerMain {
     	try {
     		followersRMI = new NotificationServiceServerImpl(onlineUsers);
 			NotificationServiceServer stub2 = (NotificationServiceServer) UnicastRemoteObject.exportObject(followersRMI, 39000);
-			LocateRegistry.createRegistry(5556);
-			Registry registry = LocateRegistry.getRegistry(5556);
+			LocateRegistry.createRegistry(RMIportfollowers);
+			Registry registry = LocateRegistry.getRegistry(RMIportfollowers);
 			registry.bind("FOLLOWERS-SERVER", stub2);
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
@@ -204,11 +210,7 @@ public class WinServerMain {
 
                         System.out.println(operation);
                         
-                        if(operation.contains("logout")) {
-                        	followersRMI.follow("honker");
-                        }
-
-                        threadPool.execute(new WinServerWorker(operation, key, serverStorage));
+                        threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI));
 
                     }
                     else if (key.isWritable() && key.isValid()) {
