@@ -36,5 +36,10 @@ public class NotificationServiceServerImpl extends RemoteObject implements Notif
 		NotificationServiceClient client = (NotificationServiceClient) registeredClients.get(username);
 		client.notifyFollow(username, follower);
 	}
+	
+	public void unfollow(String username, String unfollower) throws RemoteException {
+		NotificationServiceClient client = (NotificationServiceClient) registeredClients.get(username);
+		client.notifyUnfollow(username, unfollower);
+	}
 	 
 }

@@ -39,5 +39,11 @@ public class WinUser {
     	followedUsers.add(username);
     	return 0;
     }
+    
+    public int unfollowUser(String username) {
+    	if(!(followedUsers.contains(username))) return -1;
+    	followedUsers.remove(username);
+    	return 0;
+    }
 
 }

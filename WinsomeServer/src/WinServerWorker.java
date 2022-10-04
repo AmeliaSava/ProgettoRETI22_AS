@@ -45,6 +45,7 @@ public class WinServerWorker implements Runnable {
             	}
             	break;
             case "follow":
+            	
             	System.out.println(args[2] + " wants to follow " + args[1]);
             	
             	serverStorage.followUser(args[1], args[2], keyWorker);
@@ -62,6 +63,22 @@ public class WinServerWorker implements Runnable {
                 
             	break;
             case "unfollow":
+            	
+            	System.out.println(args[2] + " wants to unfollow " + args[1]);
+            	
+            	serverStorage.unfollowUser(args[1], args[2], keyWorker);
+            	
+                // Se l'utente ne ha seguito un'altro
+                if(keyWorker.attachment().equals("UNFOLLOW-OK")) {
+                	// notifico quell'utente tramite RMI
+                	try {
+						followersRMI.unfollow(args[1], args[2]);
+					} catch (RemoteException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+                }
+                
             	break;
             case "post":
                 //come mettere l'autore di un post?

@@ -91,13 +91,7 @@ public class WinServerStorage {
     	return;
     	
     }
-    
-    public void createPost(WinPost post) {
-        postMap.put(post.getIdPost(), post);
-        //fare qualcosa con gli user
-        // trovo l'autore e gli linko il post nel suo blog?
-    }
-    
+        
     public ArrayBlockingQueue<WinUser> listUsers(UUID user) {
 		
     	
@@ -138,10 +132,11 @@ public class WinServerStorage {
     			int r;
     			
     			if((r = curUser.followUser(userFollowed)) == 0) {
-    				System.out.println(curUser.getUsername() + " followed " + userMap.get(userFollowing).getfollowedUsers().get(0));
+    				System.out.println(curUser.getUsername() + " followed " + userFollowed);
     				key.attach("FOLLOW-OK");
     			} else {
     				key.attach("ALREADY-FOLLOWING");
+    				return;
     			}
     			
     		} else {
@@ -157,10 +152,49 @@ public class WinServerStorage {
     	return;
     }
     
-    public void unfollowUser(UUID userUnfollowed, UUID userUnfollowing) {
-    	//cerco l'id dell'utente che vuole seguire
-    	//tolgo alla lista dei seguiti
-    	//mando notifica a chi e' stato seguito
+    public void unfollowUser(String userUnfollowed, String userUnfollowing, SelectionKey key) {
+    	
+    	WinUser curUser = userMap.get(userUnfollowing);
+    	
+    	//L'utente non e' registrato
+    	if(curUser == null) {
+    		System.err.println("User not found");
+    		key.attach("CURUSER-NOT-FOUND");
+    		return;
+    	}
+    	
+    	// L'utente non era online
+    	if(onlineUsers.containsKey(userUnfollowing)) {
+    		// Controllo che l'utente da seguire esista
+    		if(userMap.containsKey(userUnfollowed)) {
+    			
+    			// Controllo che l'utente corrente non stia gia' seguendo l'utente da seguire
+    			int r;
+    			
+    			if((r = curUser.unfollowUser(userUnfollowed)) == 0) {
+    				System.out.println(curUser.getUsername() + " unfollowed " + userUnfollowed);
+    				key.attach("UNFOLLOW-OK");
+    			} else {
+    				key.attach("NOT-FOLLOWING");
+    				return;
+    			}
+    			
+    		} else {
+    			key.attach("USER-NOT-FOUND");
+    			return;
+    		}
+    		
+    	} else {
+    			key.attach("CURUSER-NOT-FOUND");
+    			return;
+    		}
+
     	return;
+    }
+    
+    public void createPost(WinPost post) {
+        postMap.put(post.getIdPost(), post);
+        //fare qualcosa con gli user
+        // trovo l'autore e gli linko il post nel suo blog?
     }
 }

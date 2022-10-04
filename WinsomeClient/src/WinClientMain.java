@@ -281,9 +281,15 @@ public class WinClientMain {
 					            break;
 					        }
 					        
-					        
+					        // Nel caso del comando "list followers" gestisco lato client
+					        // Altrimenti spedisco le informazioni al server
 					        if(command[1].equals("followers")) {
-					        	System.out.println("Your followers:");
+					        	
+					        	// Stampo le informazioni sulla lista dei followers
+					        	
+					        	if(winClient.listFollowers.isEmpty()) System.out.println("You have no followers");
+					        	
+					        	System.out.println("You have " + winClient.listFollowers.size() + " followers:");
 					        	
 					        	for(String user : winClient.listFollowers) {
 					        		System.out.println(user);
@@ -318,6 +324,29 @@ public class WinClientMain {
 					        }
 					    	break;
 					    case "unfollow":
+					    	
+					    	if(winClient.currentUser == null) {
+					    		System.err.println("User not logged in");
+					    	}
+					    	
+					    	// Creo la stringa da inviare al server con
+					    	// "unfollow <username da non seguire piu'> <username utente corrente>"
+					    	
+					    	String unfollow = action + " " + winClient.currentUser;
+					    	
+					    	WinUtils.send(unfollow, clientSocket);
+					    	
+					    	String unfollowResponse = WinUtils.receive(clientSocket);
+					    	
+					    	if(unfollowResponse.equals("UNFOLLOW-OK")) {
+					            System.out.println(winClient.currentUser + " you stopped following " + command[1]);					           					            
+					        } else if(unfollowResponse.equals("USER-NOT-FOUND")) {
+					        	System.err.println("The user you tried to unfollow does not exist");
+					        } else if(unfollowResponse.equals("CURUSER-NOT-FOUND")) {
+					        	System.err.println("Username not found, login or register");
+					        } else if(unfollowResponse.equals("NOT-FOLLOWING")) {
+					        	System.err.println("You are not following this user");
+					        }
 					    	break;
 					    case "post":
 

@@ -16,10 +16,18 @@ public class NotificationServiceClientImpl implements NotificationServiceClient 
 	
 	@Override
 	/*
-	 * Metodo utilizzato dal server per notificare un cambiamento nella lista dei followers
+	 * Metodo utilizzato dal server per notificare un nuovo follower e aggiungerlo alla lista
 	 */
 	public void notifyFollow(String username, String follower) throws RemoteException {
 		System.out.println(follower + " has started following you!");
 		listFollowers.add(follower);
+		return;
+	}
+
+	@Override
+	public void notifyUnfollow(String username, String unfollower) throws RemoteException {
+		System.out.println(unfollower + " has stopped following you!");
+		listFollowers.remove(unfollower);
+		return;
 	}
 }
