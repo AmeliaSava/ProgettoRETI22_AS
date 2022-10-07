@@ -52,4 +52,12 @@ public final class WinUtils {
 
         return response;
     }
+
+    public static void sleep(long timeMillis) {
+        try {
+            Thread.sleep(timeMillis);
+        } catch(InterruptedException e) {
+            // ATTENZIONE
+        }
+    }
 }

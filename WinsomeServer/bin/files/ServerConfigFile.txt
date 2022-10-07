@@ -4,7 +4,7 @@
 # Intervallo di tempo che passa tra il calco di una ricompensa e l'altra
 # L'intervallo e' espresso in secondi
 
-REWARDTIME 5
+REWARDTIME 100
 
 # Percentuale della ricompensa che spetta all'autore
 
@@ -13,7 +13,10 @@ AUTHP 60
 # Numeri di porta del server
 
 TCPPORT 6666
-UDPPORT 6669
+UDPPORT 6668
+
+RMIPORTREGISTER 5555
+RMIPORTFOLLOWERS 5556
 
 # Indirizzi
 

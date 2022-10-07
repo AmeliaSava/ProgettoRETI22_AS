@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface RegistrationService extends Remote {
 
-	int registerUser(String username, String password, List<String> tagList) throws RemoteException;
+    int registerUser(String username, String password, List<String> tagList) throws RemoteException;
 }

@@ -22,24 +22,28 @@ public class WinServerMain {
 
     private static int TCPport;
     private static int UDPport;
-    
+
     private static int RMIportregister;
     private static int RMIportfollowers;
-    
+
     private static int rewardTime;
     private static String multicastAddress;
     private static WinServerStorage serverStorage;
 
+    // Informazioni per la persistenza nel file system
+    private WinServerStorageKeeper serverStorageKeeper;
+    private Thread keeperThread;
+
     private ThreadPoolExecutor threadPool;
-    
+
     // Informazioni per il calcolo periodico delle ricompense
     private WinRewardCalculator rewardCalculator;
     private Thread calcThread;
-    
+
     private static WinServerMain winServer;
-    
+
     private ConcurrentHashMap<String, WinUser> onlineUsers;
-    
+
     private NotificationServiceServerImpl followersRMI;
 
     public void configServer () {
@@ -65,20 +69,20 @@ public class WinServerMain {
                             TCPport = Integer.parseInt(st.nextToken());
                             break;
                         case "RMIPORTREGISTER":
-                        	RMIportregister = Integer.parseInt(st.nextToken());
-                        	break;
+                            RMIportregister = Integer.parseInt(st.nextToken());
+                            break;
                         case "RMIPORTFOLLOWERS":
-                        	RMIportfollowers = Integer.parseInt(st.nextToken());
-                        	break;
+                            RMIportfollowers = Integer.parseInt(st.nextToken());
+                            break;
                         case "UDPPORT":
-                        	UDPport = Integer.parseInt(st.nextToken());
-                        	break;
+                            UDPport = Integer.parseInt(st.nextToken());
+                            break;
                         case "MULTICASTADD":
                             multicastAddress = st.nextToken();
                             break;
                         case "REWARDTIME":
-                        	rewardTime = Integer.parseInt(st.nextToken());
-                        	break;
+                            rewardTime = Integer.parseInt(st.nextToken());
+                            break;
                     }
 
                 }
@@ -86,7 +90,7 @@ public class WinServerMain {
         }
 
     }
-    
+
     private void startThreadPool() {
         //rejection handler
         //la lista?
@@ -94,56 +98,67 @@ public class WinServerMain {
         threadPool = new ThreadPoolExecutor(0,100, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10));
         System.out.println("Threadpool started");
     }
-    
+
     public void registrationServiceRegister() {
 
         try {
-            
+
             RegistrationServiceImpl registerRMI = new RegistrationServiceImpl(serverStorage);
-			RegistrationService stub1 = (RegistrationService) UnicastRemoteObject.exportObject(registerRMI, 0);
-			// creo un registry sulla porta dedicata all'RMI
-			LocateRegistry.createRegistry(RMIportregister);
-			Registry r = LocateRegistry.getRegistry(RMIportregister);
-			// pubblico lo stub nel registry
-			r.rebind("REGISTER-SERVER", stub1);
-		} catch (RemoteException e) {
-			System.err.println("ERROR: Communication, " + e.toString());
-			e.printStackTrace();
-		}
+            RegistrationService stub1 = (RegistrationService) UnicastRemoteObject.exportObject(registerRMI, 0);
+            // creo un registry sulla porta dedicata all'RMI
+            LocateRegistry.createRegistry(RMIportregister);
+            Registry r = LocateRegistry.getRegistry(RMIportregister);
+            // pubblico lo stub nel registry
+            r.rebind("REGISTER-SERVER", stub1);
+        } catch (RemoteException e) {
+            System.err.println("ERROR: Communication, " + e.toString());
+            e.printStackTrace();
+        }
     }
-    
+
     public void notificationServiceRegister() {
-    	
-    	try {
-    		followersRMI = new NotificationServiceServerImpl(onlineUsers);
-			NotificationServiceServer stub2 = (NotificationServiceServer) UnicastRemoteObject.exportObject(followersRMI, 39000);
-			LocateRegistry.createRegistry(RMIportfollowers);
-			Registry registry = LocateRegistry.getRegistry(RMIportfollowers);
-			registry.bind("FOLLOWERS-SERVER", stub2);
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (AlreadyBoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
+        try {
+            followersRMI = new NotificationServiceServerImpl(onlineUsers);
+            NotificationServiceServer stub2 = (NotificationServiceServer) UnicastRemoteObject.exportObject(followersRMI, 39000);
+            LocateRegistry.createRegistry(RMIportfollowers);
+            Registry registry = LocateRegistry.getRegistry(RMIportfollowers);
+            registry.bind("FOLLOWERS-SERVER", stub2);
+        } catch (RemoteException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (AlreadyBoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
-    
+
     public void startMulticast() {
         // Faccio partire il thread per il calcolo periodico delle risorse
         // Gestisce la comunicazione UDP multicast
-		
+
         rewardCalculator = new WinRewardCalculator(serverStorage, rewardTime, multicastAddress, UDPport);
         calcThread = new Thread(rewardCalculator);
         calcThread.start();
-        return;
     }
-    
+
     public void stopMulticast() {
-    	rewardCalculator.disconnect();
-    	calcThread.interrupt();
+        rewardCalculator.disconnect();
+        calcThread.interrupt();
     }
-    
+
+    public void startStorageKeeper() {
+
+        serverStorageKeeper = new WinServerStorageKeeper(serverStorage, 10);
+        keeperThread = new Thread(serverStorageKeeper);
+        keeperThread.start();
+    }
+
+    public void stopStorageKeeper() {
+        serverStorageKeeper.stop();
+        keeperThread.interrupt();
+    }
+
     public void connect() {
         // Channel Multiplexing con NIO
 
@@ -171,9 +186,7 @@ public class WinServerMain {
         while(true) {
             try {
                 // ATTENZIONE bloccante fino a che non c'è una richeista di connessione
-                //System.out.println("piantato sulla select");
                 selector.select(1000);
-                //System.out.println("non più piantato sulla select");
             } catch (IOException ex) {
                 ex.printStackTrace();
                 break;
@@ -198,9 +211,8 @@ public class WinServerMain {
                         System.out.println("Accepted connection from " + client);
                         client.configureBlocking(false);
                         //registro il socket che mi collega a quel selettore con l'op write o read
-                        //altra key???
-                        SelectionKey keyClient = client.register(selector, SelectionKey.OP_READ);
-                        
+                        client.register(selector, SelectionKey.OP_READ);
+
                     }
                     else if (key.isReadable() && key.isValid()) {
                         System.out.println("reading");
@@ -209,31 +221,31 @@ public class WinServerMain {
                         String operation = WinUtils.receive(clientRead);
 
                         System.out.println(operation);
-                        
+
                         threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI));
 
                     }
                     else if (key.isWritable() && key.isValid()) {
                         System.out.println("writable");
                         //scrittura disponibile
-                        SocketChannel client = (SocketChannel) key.channel();              
+                        SocketChannel client = (SocketChannel) key.channel();
 
                         //ATTENZIONE controllare che l'attachment ci sia?
                         //ATTENZIONE casting a stringa brutto?
                         WinUtils.send((String)key.attachment(), client);
-                        
+
                         // Se l'utente ha appena effettuato il login con successo
                         if(key.attachment().equals("LOGIN-OK")) {
-                        	// Attivo il thread per comunicare gli aggiornamenti sul portafoglio
-                        	winServer.startMulticast();
+                            // Attivo il thread per comunicare gli aggiornamenti sul portafoglio
+                            winServer.startMulticast();
                         }
-                        
+
                         // Se l'utente ha appena effettuato il logout con successo
                         if(key.attachment().equals("LOGOUT-OK")) {
-                        	// Fermo il calcolo periodico delle ricompense
-                        	winServer.stopMulticast();
+                            // Fermo il calcolo periodico delle ricompense
+                            winServer.stopMulticast();
                         }
-                        
+
                         //dopo aver scritto torno in lettura
                         key.interestOps(SelectionKey.OP_READ);
                     }
@@ -253,30 +265,29 @@ public class WinServerMain {
 
         //configserver statica?
         winServer = new WinServerMain();
-        
+
         // Parsing del file di configurazione
         winServer.configServer();
         //controllare se era presente una precende sessione
         //se c'era implementare anche come ricaricare tutta la roba
         serverStorage = new WinServerStorage();
-        
+
         // inizializzo il pool di thread e il thread per le ricompense
         winServer.startThreadPool();
 
         System.out.println("Listening on port: " + TCPport);
-        
-        //RMI? punto adatto?
+
+        //ATTENZIONE RMI? punto adatto?
 
         winServer.registrationServiceRegister();
         winServer.notificationServiceRegister();
-        
+
+        // Faccio partire il sistema per mantenere i dati del serverStorage
+        winServer.startStorageKeeper();
+
         // Metto il server in ascolto per le connessioni
         winServer.connect();
-        
 
-        
-        // Esporto l'oggetto
-        
 
         //shutdown thread?
 

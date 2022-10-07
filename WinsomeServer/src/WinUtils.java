@@ -26,10 +26,10 @@ public final class WinUtils {
         //catturare l'eccezione
         ByteBuffer readBuffer = ByteBuffer.allocate(4);
         IntBuffer view = readBuffer.asIntBuffer();
-        
+
         channel.read(readBuffer);
         int rSize = view.get();
-        
+
         readBuffer.clear();
         view.rewind();
 
@@ -46,5 +46,13 @@ public final class WinUtils {
         readBuffer.clear();
 
         return response;
+    }
+
+    public static void sleep(long timeMillis) {
+        try {
+            Thread.sleep(timeMillis);
+        } catch(InterruptedException e) {
+            // ATTENZIONE
+        }
     }
 }
