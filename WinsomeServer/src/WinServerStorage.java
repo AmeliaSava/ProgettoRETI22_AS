@@ -207,6 +207,12 @@ public class WinServerStorage {
                 if((r = curUser.followUser(userFollowed)) == 0) {
                     System.out.println(curUser.getUsername() + " followed " + userFollowed);
                     folUser.addFollower(userFollowing);
+                    
+                    // Aggiungo tutti i post dell'utente che viene seguito al feed dell'utente che segue
+                    for(UUID post : folUser.getBlog()) {
+                    	curUser.updateFeed(post);
+                    }
+                    
                     key.attach("FOLLOW-OK");
                 } else {
                     key.attach("ALREADY-FOLLOWING");
@@ -267,6 +273,52 @@ public class WinServerStorage {
 
         return;
     }
+    
+    public void viewBlog(String currentUser, SelectionKey key) {
+    	
+    	WinUser curUser = userMap.get(currentUser);
+    	
+    	if(curUser == null) {
+            System.err.println("User not found");
+            key.attach("CURUSER-NOT-FOUND");
+            return;
+    	}
+    	
+    	List<String> blog = new ArrayList<String>();
+    	
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String json;
+        String info = null;
+    	
+    	for(UUID idPost : curUser.getBlog()) {
+    		WinPost curPost = postMap.get(idPost);
+    		
+    		if(curPost == null) {
+    			// e' sparito un post
+    			// ECCEZIONE
+    		}
+    		
+    		info = curPost.getIdPost().toString();
+    		
+            info = info.concat("/" + curPost.getPostAuthor() + "/" + curPost.getPostTitle());
+            
+            blog.add(info);
+            
+    	}
+    	
+        // Se seguo almeno un utente
+        if(blog.size() > 0) {
+            blog.add(0,"BLOG-OK");
+            for(String info2 : blog) {
+                System.out.println(info);
+            }
+        } else { // non seguo nessuno
+            blog.add("BLOG-EMPTY");
+        }
+        
+        json = gson.toJson(blog);
+        key.attach(json);
+    }
 
     public void createPost(String author, String title, String text, SelectionKey key) {
 
@@ -298,5 +350,95 @@ public class WinServerStorage {
         }
         System.out.println("blog size: " + curUser.getBlog().size());
         key.attach("POST-OK");
+    }
+    
+    public void showFeed(String currentUser, SelectionKey key) {
+    	
+    	
+    	WinUser curUser = userMap.get(currentUser);
+    	
+    	if(curUser == null) {
+            System.err.println("User not found");
+            key.attach("CURUSER-NOT-FOUND");
+            return;
+    	}
+    	
+    	List<String> feed = new ArrayList<String>();
+    	
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String json;
+        String info = null;
+    	
+    	for(UUID idPost : curUser.getFeed()) {
+    		WinPost curPost = postMap.get(idPost);
+    		
+    		if(curPost == null) {
+    			// e' sparito un post
+    			// ECCEZIONE
+    		}
+    		
+    		info = curPost.getIdPost().toString();
+    		
+            info = info.concat("/" + curPost.getPostAuthor() + "/" + curPost.getPostTitle());
+            
+            feed.add(info);
+            
+    	}
+    	
+        // Se ci sono post nel feed
+        if(feed.size() > 0) {
+            feed.add(0,"FEED-OK");
+            for(String info2 : feed) {
+                System.out.println(info);
+            }
+        } else {
+            feed.add("FEED-EMPTY");
+        }
+        
+        json = gson.toJson(feed);
+        key.attach(json);
+    	
+    }
+    
+    public void showPost(UUID postID, SelectionKey key) {
+    	
+    	WinPost curPost = postMap.get(postID);
+    	
+    	// Il post richiesto non esiste
+    	if(curPost == null) {
+    		key.attach("POST-NOT-FOUND");
+    		return;
+    	}
+    	
+    	Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String json = gson.toJson(curPost);
+        
+        key.attach(json);
+    	
+    	
+    }
+    
+    public void deletePost() {
+    	
+    }
+    
+    public void rewinPost() {
+    	
+    }
+    
+    public void ratePost() {
+    	
+    }
+    
+    public void addComment() {
+    	
+    }
+    
+    public void getWallet() {
+    	
+    }
+    
+    public void getWalletBitcoin() {
+    	
     }
 }

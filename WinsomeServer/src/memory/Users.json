@@ -26,7 +26,8 @@
     ],
     "followedUsers": [],
     "followers": [
-      "penguin"
+      "penguin",
+      "birb"
     ],
     "wallet": 0,
     "blog": [
@@ -34,7 +35,10 @@
       "b819c8bb-7aea-4498-80ac-452cc8be4991",
       "f3ebd82a-2d80-438a-b7c9-44aaff25e5e0"
     ],
-    "feed": []
+    "feed": [
+      "5c52aa7a-0dac-40d0-b237-f68e1e811368",
+      "a1672cff-2f16-4169-9c9d-0e8be3af821c"
+    ]
   },
   "birb": {
     "idUser": "83eca73e-ac87-489d-aecb-1f59e0bcdc53",
@@ -43,11 +47,17 @@
     "tagList": [
       "seeds"
     ],
-    "followedUsers": [],
+    "followedUsers": [
+      "honker"
+    ],
     "followers": [],
     "wallet": 0,
     "blog": [],
-    "feed": []
+    "feed": [
+      "01ada65d-b7b0-4c33-a63b-0d764bbf9ab5",
+      "b819c8bb-7aea-4498-80ac-452cc8be4991",
+      "f3ebd82a-2d80-438a-b7c9-44aaff25e5e0"
+    ]
   },
   "penguin": {
     "idUser": "0c01cb64-846b-4de8-8700-f588f77b0b00",

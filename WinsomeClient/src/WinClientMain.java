@@ -176,9 +176,13 @@ public class WinClientMain {
             while(scan.hasNextLine() && !((action = scan.nextLine()).equals("exit"))) {
 
 
-                //splitto la stringa per fare dei controlli iniziali anche se poi la invio completa al server
+                // Divido la stringa per fare i controlli
                 String[] command = action.split(" ");
                 System.out.println("User requested " + command[0]);
+                
+                // Preparo le variabili per la conversione dei json delle risposte
+                Gson gson = new Gson();
+                Type type = new TypeToken<List<String>>(){}.getType();
 
 
                 /*
@@ -190,25 +194,26 @@ public class WinClientMain {
 
                     case "register":
 
-                        if(command.length > 8 || command.length < 4) {
-                            System.err.println("ERROR: correct register <username> <password> <tag1 tag2... tag5> tag list too long max 5 tags");
-                            break;
-                        }
-
-                        // Creo la lista di tag da inviare al server
-                        // Tutti i tag vengono convertiti in minuscolo
-                        // Nel caso di un tag ripetuto viene ignorato e non inserito
-                        List<String> tagList = new ArrayList<String>();
-
-                        for(int i = 3; i < command.length; i++) {
-                            if(!tagList.contains(command[i].toLowerCase()))
-                                tagList.add(command[i].toLowerCase());
-                        }
-
-                        // Controllo se la registrazione e' andata a buon fine
-                        if(serverRegister.registerUser(command[1], command[2], tagList) == 0)
-                            System.out.println("User " + command[1] + " has been registred! You can now log in...");
-                        else System.err.println("Username already in use, try logging in or choose another username");
+	                        if(command.length > 8 || command.length < 4) {
+	                            System.err.println("ERROR: use register <username> <password> <tag1 tag2... tag5> tag list must be max 5 tags long");
+	                            break;
+	                        }
+	
+	                        // Creo la lista di tag da inviare al server
+	                        // Tutti i tag vengono convertiti in minuscolo
+	                        // Nel caso di un tag ripetuto viene ignorato e non inserito
+	                        List<String> tagList = new ArrayList<String>();
+	
+	                        for(int i = 3; i < command.length; i++) {
+	                            if(!tagList.contains(command[i].toLowerCase()))
+	                                tagList.add(command[i].toLowerCase());
+	                        }
+	
+	                        // Controllo se la registrazione e' andata a buon fine
+	                        if(serverRegister.registerUser(command[1], command[2], tagList) == 0)
+	                            System.out.println("User " + command[1] + " has been registred! You can now log in...");
+	                        else System.err.println("Username already in use, try logging in or choose another username");
+	                        
                         break;
 
                     case "login":
@@ -225,9 +230,10 @@ public class WinClientMain {
                         if(loginResponse.equals("LOGIN-OK")) {
                             System.out.println("Welcome " + command[1] + " you are now logged in!");
                             winClient.currentUser = command[1];
-                            //metodo per recuperare followers gia' esistenti
-                            //possibile mandarli tutti pianopiano con RMI?
-                            //winClient.listFollowers = new ArrayList<String>();
+                            
+                            // Se il login e' andato a buon fine recupero dalla risposta la lista dei follower gia' esistenti
+                            
+                        
                             winClient.callbackRegister();
                             winClient.connectMulticast();
                         } else if(loginResponse.equals("USER-NOT-FOUND")) {
@@ -236,6 +242,7 @@ public class WinClientMain {
                             System.err.println("Password is incorrect");
                         }
                         break;
+                        
                     case "logout":
 
                         // Controllo se l'utente ha gia' effettuato il login
@@ -305,9 +312,7 @@ public class WinClientMain {
 
                             String listResponse = WinUtils.receive(clientSocket);
 
-                            // converto in lista la risposta
-                            Gson gson = new Gson();
-                            Type type = new TypeToken<List<String>>(){}.getType();
+                            // converto in lista la risposta                           
                             List<String> users = gson.fromJson(listResponse.toString(), type);
 
                             if(command[1].equals("users")) {
@@ -388,17 +393,39 @@ public class WinClientMain {
                             System.err.println("You are not following this user");
                         }
                         break;
+                        
                     case "blog":
                         if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
                         }
 
-                        String blog = action + " " + winClient.currentUser;
+                        String blogMes = action + " " + winClient.currentUser;
 
-                        WinUtils.send(blog, clientSocket);
+                        WinUtils.send(blogMes, clientSocket);
 
                         String blogResponse = WinUtils.receive(clientSocket);
+                        
+                        // converto in lista la risposta
+                        
+                        List<String> blog = gson.fromJson(blogResponse.toString(), type);
+                        
+                        if (blog.get(0).equals("BLOG-EMPTY")) {
+                            System.out.println("Your blog is still empty, make a new post!");
+                        } else if (blog.get(0).equals("BLOG-OK")) {
+                            // se non ci sono stati errori stampo il risultato
+                            blog.remove(0);
+                            System.out.println("BLOG:");
+                            for (String info : blog) {
+                                String[] blogEntry = info.split("/");
+                                System.out.println("Post ID: " + blogEntry[0]);
+                                System.out.println("Author: " + blogEntry[1]);
+                                System.out.println("Title: " + blogEntry[2]);
+                            }
+                        }
+                        
+                        
                         break;
+                        
                     case "post":
 
                         if(winClient.currentUser == null) {
@@ -430,23 +457,77 @@ public class WinClientMain {
                         }
 
                         break;
+                        
                     case "show":
-                        if(command.length != 2 || (!(command[1].equals("feed")) && !(command[1].equals("post")))) {
+                    	
+                        if((!(command[1].equals("feed")) && !(command[1].equals("post")))) {
                             System.err.println("ERROR: correct show feed OR show post");
                             break;
                         }
 
                         if(command[1].equals("feed")) {
+                        	
+                            String feedMes = action + " " + winClient.currentUser;
+
+                            WinUtils.send(feedMes, clientSocket);
+
+                            String feedResponse = WinUtils.receive(clientSocket);
+                            
+                            // converto in lista la risposta
+                            List<String> feed = gson.fromJson(feedResponse.toString(), type);
+                            
+                            if (feed.get(0).equals("FEED-EMPTY")) {
+                                System.out.println("There are no posts on your feed.");
+                            } else if (feed.get(0).equals("FEED-OK")) {
+                                // se non ci sono stati errori stampo il risultato
+                                feed.remove(0);
+                                System.out.println("FEED:");
+                                for (String info : feed) {
+                                    String[] feedEntry = info.split("/");
+                                    System.out.println("Post ID: " + feedEntry[0]);
+                                    System.out.println("Author: " + feedEntry[1]);
+                                    System.out.println("Title: " + feedEntry[2]);
+                                }
+                            }
 
                         } else if(command[1].equals("post")) {
+                        	
+                        	if(command.length != 3) {
+                        		System.err.println("ERROR: correct use -> show post <post id>");
+                        	}
 
                             WinUtils.send(action, clientSocket);
 
                             String showpostResponse = WinUtils.receive(clientSocket);
-
+                            
+                            if(showpostResponse.equals("POST-NOT-FOUND")) {
+                            	System.out.println("The post you requested doesn't exist");
+                            } else {
+                            	WinPost curPost = gson.fromJson(showpostResponse.toString(), WinPost.class);
+                            	
+                            	System.out.println("POST:");
+                            	System.out.println("'" + curPost.getPostTitle() + "'");
+                            	System.out.println("'" + curPost.getPostAuthor() + "'");
+                            	System.out.println("By: " + curPost.getPostAuthor() + " ID:" + curPost.getIdPost().toString());
+                            	
+                            	if(curPost.getPostAuthor().equals(winClient.currentUser)) {
+                            		System.out.println("Want to delete this post? type -> delete <idPost>");
+                            		String delete = scan.nextLine();
+                            		if(delete.contentEquals("delete")) {
+                            			
+                            		} else {
+                            			action = delete;
+                            		}
+                            	}
+                            	
+                            	if(false) {
+                            		// se l'utente ha il post nel suo feed puo' votarlo o commentare
+                            	}
+                            	
+                            }                        
                         }
+                        
                         break;
-
 
                     default:
                         System.out.println("Command " + command[0] + " not recognized");

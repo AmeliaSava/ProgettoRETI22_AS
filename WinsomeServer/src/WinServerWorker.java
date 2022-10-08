@@ -3,6 +3,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.UUID;
 
 public class WinServerWorker implements Runnable {
 
@@ -91,8 +92,15 @@ public class WinServerWorker implements Runnable {
                 }
 
                 break;
+            case "blog":
+            	
+                System.out.println("User" + args[1] + "has requested for their blog");
+
+                serverStorage.viewBlog(args[1], keyWorker);
+            	
+            	break;
             case "post":
-                //come mettere l'autore di un post?
+                
                 String[] elements = operation.split("\"");
 
                 serverStorage.createPost(elements[4], elements[1], elements[3], keyWorker);
@@ -102,8 +110,17 @@ public class WinServerWorker implements Runnable {
                 break;
             case "show":
                 if(args[1].equals("feed")) {
+                	
+                	System.out.println("User" + args[2] + "has requested for their feed");
+                	serverStorage.showFeed(args[2], keyWorker);
 
                 } else if(args[1].equals("post")) {
+                	
+                	System.out.println("Showing post" + args[2]);
+                	
+                	UUID postID = UUID.fromString(args[2]);
+                	
+                	serverStorage.showPost(postID, keyWorker);
                     
                 }
         }
