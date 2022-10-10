@@ -149,7 +149,7 @@ public class WinServerMain {
 
     public void startStorageKeeper() {
 
-        serverStorageKeeper = new WinServerStorageKeeper(serverStorage, 10);
+        serverStorageKeeper = new WinServerStorageKeeper(serverStorage, 100);
         keeperThread = new Thread(serverStorageKeeper);
         keeperThread.start();
     }
@@ -233,19 +233,9 @@ public class WinServerMain {
                         //ATTENZIONE controllare che l'attachment ci sia?
                         //ATTENZIONE casting a stringa brutto?
                         WinUtils.send((String)key.attachment(), client);
-
-                        // Se l'utente ha appena effettuato il login con successo
-                        if(key.attachment().equals("LOGIN-OK")) {
-                            // Attivo il thread per comunicare gli aggiornamenti sul portafoglio
-                            winServer.startMulticast();
-                        }
-
-                        // Se l'utente ha appena effettuato il logout con successo
-                        if(key.attachment().equals("LOGOUT-OK")) {
-                            // Fermo il calcolo periodico delle ricompense
-                            winServer.stopMulticast();
-                        }
-
+                        
+                        System.out.println("dopo send");
+                        
                         //dopo aver scritto torno in lettura
                         key.interestOps(SelectionKey.OP_READ);
                     }
@@ -281,6 +271,7 @@ public class WinServerMain {
 
         winServer.registrationServiceRegister();
         winServer.notificationServiceRegister();
+        winServer.startMulticast();
 
         // Faccio partire il sistema per mantenere i dati del serverStorage
         winServer.startStorageKeeper();
@@ -290,6 +281,8 @@ public class WinServerMain {
 
 
         //shutdown thread?
+        
+        winServer.stopMulticast();
 
     }
 

@@ -1,72 +1,34 @@
 {
-  "seagull": {
-    "idUser": "49350364-e6b6-4e27-be18-d072f956586d",
-    "username": "seagull",
-    "password": "AAAAA",
-    "tagList": [
-      "screaming",
-      "honking",
-      "destruction",
-      "fish"
-    ],
-    "followedUsers": [],
-    "followers": [],
-    "wallet": 0,
-    "blog": [],
-    "feed": []
-  },
   "honker": {
-    "idUser": "0dc38437-9c5f-4fda-bd91-361045c4276f",
+    "idUser": "a5c4a373-9c48-4f93-8cf5-d8b8bdd11317",
     "username": "honker",
     "password": "honkhonk",
     "tagList": [
       "honking",
       "seeds",
-      "bell"
+      "bells",
+      "destruction"
     ],
     "followedUsers": [],
     "followers": [
-      "penguin",
-      "birb"
+      "penguin"
     ],
     "wallet": 0,
     "blog": [
-      "01ada65d-b7b0-4c33-a63b-0d764bbf9ab5",
-      "b819c8bb-7aea-4498-80ac-452cc8be4991",
-      "f3ebd82a-2d80-438a-b7c9-44aaff25e5e0"
+      "2407b7a2-be9c-4d80-832e-9ed14e737213",
+      "2e23a7b1-1327-4771-b918-58dc4ce10f40",
+      "a531f9e1-1b51-426f-ad43-ea20eff23eb5"
     ],
-    "feed": [
-      "5c52aa7a-0dac-40d0-b237-f68e1e811368",
-      "a1672cff-2f16-4169-9c9d-0e8be3af821c"
-    ]
-  },
-  "birb": {
-    "idUser": "83eca73e-ac87-489d-aecb-1f59e0bcdc53",
-    "username": "birb",
-    "password": "seeds",
-    "tagList": [
-      "seeds"
-    ],
-    "followedUsers": [
-      "honker"
-    ],
-    "followers": [],
-    "wallet": 0,
-    "blog": [],
-    "feed": [
-      "01ada65d-b7b0-4c33-a63b-0d764bbf9ab5",
-      "b819c8bb-7aea-4498-80ac-452cc8be4991",
-      "f3ebd82a-2d80-438a-b7c9-44aaff25e5e0"
-    ]
+    "feed": []
   },
   "penguin": {
-    "idUser": "0c01cb64-846b-4de8-8700-f588f77b0b00",
+    "idUser": "173e1e29-8e26-4257-a731-63fcd8e431a6",
     "username": "penguin",
     "password": "penpen",
     "tagList": [
       "honking",
-      "stones",
-      "fish"
+      "fish",
+      "stones"
     ],
     "followedUsers": [
       "honker"
@@ -74,11 +36,14 @@
     "followers": [],
     "wallet": 0,
     "blog": [
-      "5c52aa7a-0dac-40d0-b237-f68e1e811368",
-      "a1672cff-2f16-4169-9c9d-0e8be3af821c"
+      "f8a5a6b6-0b78-4c52-8c5e-47162ee555dc",
+      "4e431081-50cd-4132-a227-7bbbf6aa4fc9",
+      "daffc435-1653-4fdf-8fbc-c849496f5b6b"
     ],
     "feed": [
-      "f3ebd82a-2d80-438a-b7c9-44aaff25e5e0"
+      "2407b7a2-be9c-4d80-832e-9ed14e737213",
+      "2e23a7b1-1327-4771-b918-58dc4ce10f40",
+      "a531f9e1-1b51-426f-ad43-ea20eff23eb5"
     ]
   }
 }

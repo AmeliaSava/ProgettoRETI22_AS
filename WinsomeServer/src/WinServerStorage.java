@@ -5,7 +5,6 @@ import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WinServerStorage {
@@ -35,8 +34,15 @@ public class WinServerStorage {
     public void setPostMap(ConcurrentHashMap<UUID, WinPost> postMap) { this.postMap = postMap; }
 
     /*
-     * ritorna -1 se il nome utente e' gia' presente
-     * ritorna 0 se tutto e' andato bene
+     * Inserisce il nuovo utente nella struttura dati degli utenti registrati,
+     * controllando che lo username scelto non sia gia' in uso, ritorna errore in quel caso.
+     * 
+     * @param username lo username scelto dall'utente che ha chiesto la registrazione
+     * @param password la password inserita dall'utente
+     * @param tagList la lista dei tag scelti dall'utente
+     * 
+     * @return -1 se il nome utente e' gia' presente
+     * @return 0 se tutto e' andato bene
      */
     public int registerUser(String username, String password, List<String> tagList) {
 
@@ -44,8 +50,6 @@ public class WinServerStorage {
         if(userMap.containsKey(username)) {
             return -1;
         }
-
-        //pass vuota? potrebbe succedere?
 
         // Creo il nuovo utente e lo inserisco nella hashmap degli utenti
 
@@ -59,6 +63,11 @@ public class WinServerStorage {
      * Un metodo che effettua i controlli per verificare che l'utente possa effettuare il login
      * e poi procede a inserirlo nella hashmap degli utenti online
      * Per comunicare l'esito dell'operazione aggiunge un attachment con il messaggio alla SelectionKey
+     * 
+     * @param username lo username scelto dall'utente che vuole effettuare il login
+     * @param password la password inserita dall'utente
+     * @param key
+     * 
      * @return niente
      */
     public void loginUser(String username, String password, SelectionKey key) {
@@ -66,21 +75,33 @@ public class WinServerStorage {
         // Cerco l'utente tra quelli registrati
         // Errore nel caso non sia presente o la password non sia corretta
         WinUser curUser = userMap.get(username);
+        String toSend;
+        
+        // Nel caso il login vada a buon fine devo mandare la lista dei follower gia' esistenti per aggiornarla lato client
+        List<String> followers = new ArrayList<>();
 
         if(curUser == null) {
-            System.err.println("User not found");
-            key.attach("USER-NOT-FOUND");
+            System.err.println("ERROR: login of not registered user");
+            followers.add("USER-NOT-FOUND");
+            toSend = WinUtils.prepareJson(followers);
+            key.attach(toSend);
             return;
         }
 
         if(!(curUser.getPassword().equals(password))) {
             System.err.println("Incorrect password");
-            key.attach("INCORRECT-PSW");
+            followers.add("INCORRECT-PSW");
+            toSend = WinUtils.prepareJson(followers);
+            key.attach(toSend);
             return;
         }
 
         onlineUsers.put(username, curUser);
-        key.attach("LOGIN-OK");
+        followers = curUser.getfollowers();
+        followers.add(0, "LOGIN-OK");
+        toSend = WinUtils.prepareJson(followers);
+        key.attach(toSend);
+        followers.remove(0);
     }
 
     public void logoutUser(String username, SelectionKey key) {
@@ -100,6 +121,7 @@ public class WinServerStorage {
 
         key.attach("LOGOUT-OK");
     }
+    
 
     public void listUsers(String username, SelectionKey key) {
 
@@ -202,9 +224,8 @@ public class WinServerStorage {
             if(folUser != null) {
 
                 // Controllo che l'utente corrente non stia gia' seguendo l'utente da seguire
-                int r;
-
-                if((r = curUser.followUser(userFollowed)) == 0) {
+                
+                if((curUser.followUser(userFollowed)) == 0) {
                     System.out.println(curUser.getUsername() + " followed " + userFollowed);
                     folUser.addFollower(userFollowing);
                     
@@ -250,11 +271,18 @@ public class WinServerStorage {
             if(unfolUser != null) {
 
                 // Controllo che l'utente corrente non stia gia' seguendo l'utente da seguire
-                int r;
-
-                if((r = curUser.unfollowUser(userUnfollowed)) == 0) {
+                
+                if((curUser.unfollowUser(userUnfollowed)) == 0) {
                     System.out.println(curUser.getUsername() + " unfollowed " + userUnfollowed);
                     unfolUser.removeFollower(userUnfollowing);
+                    
+                    //ATTENZIONE
+                    for(UUID post : curUser.getFeed()) {
+                    	if(postMap.get(post).getPostAuthor().equals(userUnfollowed)) {
+                    		curUser.getFeed().remove(post);
+                    	}
+                    }
+                    
                     key.attach("UNFOLLOW-OK");
                 } else {
                     key.attach("NOT-FOLLOWING");
@@ -309,9 +337,6 @@ public class WinServerStorage {
         // Se seguo almeno un utente
         if(blog.size() > 0) {
             blog.add(0,"BLOG-OK");
-            for(String info2 : blog) {
-                System.out.println(info);
-            }
         } else { // non seguo nessuno
             blog.add("BLOG-EMPTY");
         }
@@ -348,7 +373,7 @@ public class WinServerStorage {
             follower.updateFeed(post.getIdPost());
             System.out.println("follower feed size: " + follower.getFeed().size());
         }
-        System.out.println("blog size: " + curUser.getBlog().size());
+       
         key.attach("POST-OK");
     }
     
@@ -375,6 +400,9 @@ public class WinServerStorage {
     		if(curPost == null) {
     			// e' sparito un post
     			// ECCEZIONE
+    			info = "[deleted]/[deleted]/[deleted]";
+    			feed.add(info);
+    			continue;
     		}
     		
     		info = curPost.getIdPost().toString();
@@ -388,9 +416,6 @@ public class WinServerStorage {
         // Se ci sono post nel feed
         if(feed.size() > 0) {
             feed.add(0,"FEED-OK");
-            for(String info2 : feed) {
-                System.out.println(info);
-            }
         } else {
             feed.add("FEED-EMPTY");
         }
@@ -400,25 +425,54 @@ public class WinServerStorage {
     	
     }
     
-    public void showPost(UUID postID, SelectionKey key) {
+    public void showPost(String username, UUID postID, SelectionKey key) {
     	
     	WinPost curPost = postMap.get(postID);
-    	
+    	   	
     	// Il post richiesto non esiste
     	if(curPost == null) {
     		key.attach("POST-NOT-FOUND");
     		return;
     	}
     	
+    	if(userMap.get(username).getFeed().contains(postID)) curPost.isFeed();
+    	
     	Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String json = gson.toJson(curPost);
         
         key.attach(json);
-    	
+        
+        curPost.resetFeed();
     	
     }
     
-    public void deletePost() {
+    public void deletePost(String username, UUID postID, SelectionKey key) {
+    	
+    	if(!postMap.containsKey(postID)) {
+    		key.attach("POST-NOT-FOUND");
+    		return;
+    	}
+    	
+    	postMap.remove(postID);
+    	
+    	WinUser curUser = userMap.get(username);
+    	
+    	if(curUser == null) {
+    		//ECCEZIONE
+    	}
+    	
+    	// Rimuovo il post dal blog dell'utente
+    	curUser.getBlog().remove(postID);
+    	
+    	//rimuovo il post dal feed di tutti i suoi followers
+    	for(String user : curUser.getfollowers()) {
+    		System.out.println(user);
+    		System.out.println(userMap.get(user).getFeed());
+    		userMap.get(user).getFeed().remove(postID);
+    		System.out.println(userMap.get(user).getFeed());
+    	}
+    	
+    	key.attach("DELETE-OK");
     	
     }
     

@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class WinPost {
@@ -6,9 +8,12 @@ public class WinPost {
     private String postAuthor;
     private String postContent;
     private String postTitle;
+    
+    private boolean feed;
 
     //lista commenti?
     //lista reween?
+    //lista utenti che hanno espresso un voto in modo che non possa essere rivotato
     private int upvoteCount;
     private int downvoteCount;
 
@@ -17,6 +22,9 @@ public class WinPost {
         this.postAuthor = postAuthor;
         this.postContent = postContent;
         this.postTitle = postTitle;
+        
+        this.feed = false;
+        
         this.upvoteCount = 0;
         this.downvoteCount = 0;
     }
@@ -37,4 +45,14 @@ public class WinPost {
     public String getPostContent() { return  postContent; }
 
     public String getPostAuthor() { return postAuthor; }
+    
+    public boolean getFeed() {  return feed; }
+    
+    public void isFeed() {
+    	feed = true;
+    }
+    
+    public void resetFeed() {
+    	feed = false;
+    }
 }

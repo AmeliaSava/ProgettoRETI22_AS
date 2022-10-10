@@ -24,7 +24,7 @@ public class WinServerWorker implements Runnable {
     public void run() {
 
         String[] args = operation.split(" ");
-        System.out.println("printing args" + operation);
+        System.out.println("printing args " + operation);
         switch (args[0]) {
             case "login":
 
@@ -81,7 +81,7 @@ public class WinServerWorker implements Runnable {
                 serverStorage.unfollowUser(args[1], args[2], keyWorker);
 
                 // Se l'utente ne ha seguito un'altro
-                if(keyWorker.attachment().equals("UNFOLLOW-OK")) {
+                if(keyWorker.attachment().equals("UNFOLLOW-OK") && serverStorage.getOnlineUsers().containsKey(args[1])) {
                     // notifico quell'utente tramite RMI
                     try {
                         followersRMI.unfollow(args[1], args[2]);
@@ -94,7 +94,7 @@ public class WinServerWorker implements Runnable {
                 break;
             case "blog":
             	
-                System.out.println("User" + args[1] + "has requested for their blog");
+                System.out.println("User " + args[1] + "has requested for their blog");
 
                 serverStorage.viewBlog(args[1], keyWorker);
             	
@@ -111,18 +111,35 @@ public class WinServerWorker implements Runnable {
             case "show":
                 if(args[1].equals("feed")) {
                 	
-                	System.out.println("User" + args[2] + "has requested for their feed");
+                	System.out.println("User " + args[2] + "has requested for their feed");
                 	serverStorage.showFeed(args[2], keyWorker);
 
                 } else if(args[1].equals("post")) {
                 	
-                	System.out.println("Showing post" + args[2]);
+                	System.out.println("Showing post " + args[2] + " for " + args[3]);
                 	
                 	UUID postID = UUID.fromString(args[2]);
                 	
-                	serverStorage.showPost(postID, keyWorker);
+                	serverStorage.showPost(args[3], postID, keyWorker);
                     
                 }
+                break;
+            case "delete":
+            	System.out.println("Deleting post " + args[1] + " for " + args[2]);
+            	
+            	UUID postID = UUID.fromString(args[1]);
+            	serverStorage.deletePost(args[2], postID, keyWorker);
+            	
+            	break;
+            case "rewin":
+            	break;
+            case "rate":
+            	break;
+            case "comment":
+            	break;
+            case "wallet":
+            	break;
+                
         }
 
         // Comunico al server che c'e' una risposta da mandare

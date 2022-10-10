@@ -219,26 +219,34 @@ public class WinClientMain {
                     case "login":
 
                         if(command.length != 3) {
-                            System.out.println("ERROR: correct login <username> <password>");
+                            System.err.println("ERROR: correct login <username> <password>");
                             break;
+                        }
+                        
+                        if(winClient.currentUser != null) {
+                        	System.err.println("You are already logged in");
+                        	break;
                         }
 
                         WinUtils.send(action, clientSocket);
 
                         String loginResponse = WinUtils.receive(clientSocket);
-
-                        if(loginResponse.equals("LOGIN-OK")) {
+                                            
+                        List<String> followers = gson.fromJson(loginResponse.toString(), type);
+                       
+                        if(followers.get(0).equals("LOGIN-OK")) {
                             System.out.println("Welcome " + command[1] + " you are now logged in!");
                             winClient.currentUser = command[1];
                             
                             // Se il login e' andato a buon fine recupero dalla risposta la lista dei follower gia' esistenti
-                            
+                            followers.remove(0);
+                            winClient.listFollowers = followers;
                         
                             winClient.callbackRegister();
                             winClient.connectMulticast();
-                        } else if(loginResponse.equals("USER-NOT-FOUND")) {
+                        } else if(followers.get(0).equals("USER-NOT-FOUND")) {
                             System.err.println("Username not found, you need to register first!");
-                        } else if(loginResponse.equals("INCORRECT-PSW")) {
+                        } else if(followers.get(0).equals("INCORRECT-PSW")) {
                             System.err.println("Password is incorrect");
                         }
                         break;
@@ -297,7 +305,10 @@ public class WinClientMain {
 
                             // Stampo le informazioni sulla lista dei followers
 
-                            if(winClient.listFollowers.isEmpty()) System.out.println("You have no followers");
+                            if(winClient.listFollowers.isEmpty()) {
+                            	System.out.println("You have no followers");
+                            	break;
+                            }
 
                             System.out.println("You have " + winClient.listFollowers.size() + " followers:");
 
@@ -395,6 +406,7 @@ public class WinClientMain {
                         break;
                         
                     case "blog":
+                    	
                         if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
                         }
@@ -464,6 +476,10 @@ public class WinClientMain {
                             System.err.println("ERROR: correct show feed OR show post");
                             break;
                         }
+                        
+                        if(winClient.currentUser == null) {
+                            System.err.println("User not logged in");
+                        }
 
                         if(command[1].equals("feed")) {
                         	
@@ -494,9 +510,12 @@ public class WinClientMain {
                         	
                         	if(command.length != 3) {
                         		System.err.println("ERROR: correct use -> show post <post id>");
+                        		break;
                         	}
-
-                            WinUtils.send(action, clientSocket);
+                        	
+                        	String postMes = action + " " + winClient.currentUser;
+                        	
+                            WinUtils.send(postMes, clientSocket);
 
                             String showpostResponse = WinUtils.receive(clientSocket);
                             
@@ -512,19 +531,51 @@ public class WinClientMain {
                             	
                             	if(curPost.getPostAuthor().equals(winClient.currentUser)) {
                             		System.out.println("Want to delete this post? type -> delete <idPost>");
-                            		String delete = scan.nextLine();
-                            		if(delete.contentEquals("delete")) {
-                            			
-                            		} else {
-                            			action = delete;
-                            		}
+                            		break;
                             	}
                             	
-                            	if(false) {
+                            	if(curPost.getFeed()) {
                             		// se l'utente ha il post nel suo feed puo' votarlo o commentare
+                            		System.out.println("post in feed");
                             	}
                             	
                             }                        
+                        }
+                        
+                        break;
+                    case "wallet":
+                    	
+                        if(winClient.currentUser == null) {
+                            System.err.println("User not logged in");
+                        }
+                        
+                    	if(command.length == 1) {
+                    		System.out.println("wallet");
+                    	} else if(command[1].equals("btc")) {
+                    		System.out.println("wallet btc");
+                    	} else {
+                    		System.err.println("ERROR:");
+                    		System.err.println("correct use -> 'wallet' to see your wallet");
+                    		System.err.println("'wallet btc' to see your wallet in bitcoin");
+                    	}
+                    	break;
+                    	
+                    case "delete":
+                    	System.err.println("ERROR: to delete a post you must first do -> show post <idPost>");
+                    	System.err.println("You can delete a post only if you are the author");
+                    	
+               			String deleteMes = action + " " + winClient.currentUser;
+            			
+            			System.out.println(deleteMes);
+                    	
+                        WinUtils.send(deleteMes, clientSocket);
+
+                        String deleteResponse = WinUtils.receive(clientSocket);
+                        
+                        if(deleteResponse.equals("DELETE-OK")) {
+                        	System.out.println("The post was successfully deleted!");
+                        } else if(deleteResponse.equals("POST-NOT-FOUND")) {
+                        	System.err.println("The post you tried to delete does not exist");
                         }
                         
                         break;

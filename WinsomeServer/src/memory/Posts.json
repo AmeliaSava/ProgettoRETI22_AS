@@ -1,41 +1,55 @@
 {
-  "a1672cff-2f16-4169-9c9d-0e8be3af821c": {
-    "idPost": "a1672cff-2f16-4169-9c9d-0e8be3af821c",
-    "postAuthor": "penguin",
-    "postContent": "i brought stone to girlfriend, she didn\u0027t like, help",
-    "postTitle": "stone help",
-    "upvoteCount": 0,
-    "downvoteCount": 0
-  },
-  "01ada65d-b7b0-4c33-a63b-0d764bbf9ab5": {
-    "idPost": "01ada65d-b7b0-4c33-a63b-0d764bbf9ab5",
-    "postAuthor": "honker",
-    "postContent": "honkhonkonk",
-    "postTitle": "i love honking",
-    "upvoteCount": 0,
-    "downvoteCount": 0
-  },
-  "5c52aa7a-0dac-40d0-b237-f68e1e811368": {
-    "idPost": "5c52aa7a-0dac-40d0-b237-f68e1e811368",
-    "postAuthor": "penguin",
-    "postContent": "honkhonkhonk",
-    "postTitle": "honk",
-    "upvoteCount": 0,
-    "downvoteCount": 0
-  },
-  "f3ebd82a-2d80-438a-b7c9-44aaff25e5e0": {
-    "idPost": "f3ebd82a-2d80-438a-b7c9-44aaff25e5e0",
-    "postAuthor": "honker",
-    "postContent": "bring bell to girlfriend not stone",
-    "postTitle": "bells",
-    "upvoteCount": 0,
-    "downvoteCount": 0
-  },
-  "b819c8bb-7aea-4498-80ac-452cc8be4991": {
-    "idPost": "b819c8bb-7aea-4498-80ac-452cc8be4991",
+  "2e23a7b1-1327-4771-b918-58dc4ce10f40": {
+    "idPost": "2e23a7b1-1327-4771-b918-58dc4ce10f40",
     "postAuthor": "honker",
     "postContent": "dingdingding",
-    "postTitle": "i stole bell",
+    "postTitle": "bell",
+    "feed": false,
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  "4e431081-50cd-4132-a227-7bbbf6aa4fc9": {
+    "idPost": "4e431081-50cd-4132-a227-7bbbf6aa4fc9",
+    "postAuthor": "penguin",
+    "postContent": "i brought stone to girlfriend but she didn\u0027t like it help",
+    "postTitle": "stone help",
+    "feed": false,
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  "2407b7a2-be9c-4d80-832e-9ed14e737213": {
+    "idPost": "2407b7a2-be9c-4d80-832e-9ed14e737213",
+    "postAuthor": "honker",
+    "postContent": "honkhonkhonk",
+    "postTitle": "i love honking",
+    "feed": false,
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  "daffc435-1653-4fdf-8fbc-c849496f5b6b": {
+    "idPost": "daffc435-1653-4fdf-8fbc-c849496f5b6b",
+    "postAuthor": "penguin",
+    "postContent": "i can\u0027t show picture, sad",
+    "postTitle": "i found pretty stone",
+    "feed": false,
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  "f8a5a6b6-0b78-4c52-8c5e-47162ee555dc": {
+    "idPost": "f8a5a6b6-0b78-4c52-8c5e-47162ee555dc",
+    "postAuthor": "penguin",
+    "postContent": "honk",
+    "postTitle": "honk",
+    "feed": false,
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  "a531f9e1-1b51-426f-ad43-ea20eff23eb5": {
+    "idPost": "a531f9e1-1b51-426f-ad43-ea20eff23eb5",
+    "postAuthor": "honker",
+    "postContent": "honkhonk",
+    "postTitle": "honk",
+    "feed": false,
     "upvoteCount": 0,
     "downvoteCount": 0
   }

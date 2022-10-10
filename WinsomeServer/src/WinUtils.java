@@ -4,6 +4,9 @@ import java.nio.IntBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 public final class WinUtils {
 
     public static void send(String message, SocketChannel channel) throws IOException {
@@ -47,7 +50,13 @@ public final class WinUtils {
 
         return response;
     }
-
+    
+    public static String prepareJson(Object toSend) {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String json = gson.toJson(toSend);
+        return json;
+    }
+    
     public static void sleep(long timeMillis) {
         try {
             Thread.sleep(timeMillis);
