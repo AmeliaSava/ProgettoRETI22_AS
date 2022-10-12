@@ -1,0 +1,77 @@
+{
+  "seagull": {
+    "idUser": "c506f1ac-0a9b-498c-bc7c-126e751ea1c2",
+    "username": "seagull",
+    "password": "AAA",
+    "tagList": [
+      "screaming",
+      "destruction",
+      "fish"
+    ],
+    "followedUsers": [],
+    "followers": [],
+    "wallet": 0,
+    "blog": [],
+    "feed": []
+  },
+  "honker": {
+    "idUser": "a5c4a373-9c48-4f93-8cf5-d8b8bdd11317",
+    "username": "honker",
+    "password": "honkhonk",
+    "tagList": [
+      "honking",
+      "seeds",
+      "bells",
+      "destruction"
+    ],
+    "followedUsers": [],
+    "followers": [
+      "penguin"
+    ],
+    "wallet": 0,
+    "blog": [
+      "2407b7a2-be9c-4d80-832e-9ed14e737213",
+      "2e23a7b1-1327-4771-b918-58dc4ce10f40",
+      "a531f9e1-1b51-426f-ad43-ea20eff23eb5"
+    ],
+    "feed": []
+  },
+  "l": {
+    "idUser": "11c10e27-89c8-40c4-a8a8-d3ce2688b6c3",
+    "username": "l",
+    "password": "l",
+    "tagList": [
+      "l"
+    ],
+    "followedUsers": [],
+    "followers": [],
+    "wallet": 0,
+    "blog": [],
+    "feed": []
+  },
+  "penguin": {
+    "idUser": "173e1e29-8e26-4257-a731-63fcd8e431a6",
+    "username": "penguin",
+    "password": "penpen",
+    "tagList": [
+      "honking",
+      "fish",
+      "stones"
+    ],
+    "followedUsers": [
+      "honker"
+    ],
+    "followers": [],
+    "wallet": 0,
+    "blog": [
+      "f8a5a6b6-0b78-4c52-8c5e-47162ee555dc",
+      "daffc435-1653-4fdf-8fbc-c849496f5b6b",
+      "8126c938-ad46-4f6e-ae68-bd7d1949eb1f"
+    ],
+    "feed": [
+      "2407b7a2-be9c-4d80-832e-9ed14e737213",
+      "2e23a7b1-1327-4771-b918-58dc4ce10f40",
+      "a531f9e1-1b51-426f-ad43-ea20eff23eb5"
+    ]
+  }
+}

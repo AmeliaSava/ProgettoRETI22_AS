@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WinRewardCalculator implements Runnable {
 
@@ -25,6 +27,8 @@ public class WinRewardCalculator implements Runnable {
         System.out.println("Reward calculator started");
 
         while(!stop) {
+        	
+        	calculateReward();
 
             try (DatagramSocket mc = new DatagramSocket()) {
                 System.out.println("Multadd" + multicastAddress);
@@ -38,6 +42,18 @@ public class WinRewardCalculator implements Runnable {
 
             WinUtils.sleep(time * 1000);
         }
+    }
+    
+    private void calculateReward() {
+    	
+    	ConcurrentHashMap<UUID, WinPost> postMap = serverStorage.getPostMap();
+    	
+    	if(postMap == null) { //ATTENZIONE }
+    	
+    	for(WinPost post : postMap.values()) {
+    		
+    		int postRevenue = 
+    	}
     }
 
     public void disconnect() {

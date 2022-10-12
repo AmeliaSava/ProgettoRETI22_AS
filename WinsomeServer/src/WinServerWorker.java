@@ -132,10 +132,35 @@ public class WinServerWorker implements Runnable {
             	
             	break;
             case "rewin":
+            	// args[1] -> postID
+            	// args[2] -> user rewinning
+            	
+            	System.out.println("Rewin post " + args[1] + " for " + args[2]);
+            	
+            	UUID rewinpostID = UUID.fromString(args[1]);
+            	serverStorage.rewinPost(args[2], rewinpostID, keyWorker);
+            	
             	break;
             case "rate":
+            	// args[1] -> postID
+            	// args[2] -> vote
+            	// args[3] -> user rating
+            	System.out.println("Rating post " + args[1] + " " + args[2] + " for " + args[3]);
+            	
+            	int vote = Integer.parseInt(args[2]);
+            	UUID ratepostID = UUID.fromString(args[1]);
+            	
+            	serverStorage.ratePost(args[3], ratepostID, vote, keyWorker);
+            	
             	break;
             case "comment":
+            	// args[1] -> postID
+            	UUID commentpostID = UUID.fromString(args[1]);
+            	// comment[1] -> commento
+            	// comment[2] -> autore
+            	String[] comment = operation.split("\"");
+            	serverStorage.addComment(comment[2], commentpostID, comment[1], keyWorker);
+            	
             	break;
             case "wallet":
             	break;

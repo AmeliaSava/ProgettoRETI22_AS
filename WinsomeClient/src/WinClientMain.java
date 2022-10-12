@@ -170,14 +170,18 @@ public class WinClientMain {
         try {
             Scanner scan = new Scanner(System.in);
 
-            System.out.println("Do something >");
+            System.out.println("Welcome to WINSOME the reWardINg SOcial Media!");
+            System.out.println("If you need help type -> help");
+            System.out.print("> ");
 
             String action;
             while(scan.hasNextLine() && !((action = scan.nextLine()).equals("exit"))) {
-
-
+            	            	
                 // Divido la stringa per fare i controlli
                 String[] command = action.split(" ");
+                
+                if(command.length == 0) continue;
+                
                 System.out.println("User requested " + command[0]);
                 
                 // Preparo le variabili per la conversione dei json delle risposte
@@ -191,13 +195,18 @@ public class WinClientMain {
                  */
 
                 switch (command[0]) {
-
+                
                     case "register":
+                    	
+                    	if(winClient.currentUser != null) {
+                    		System.err.println("ERROR: You are already logged in");
+                        	break;
+                        }
 
-	                        if(command.length > 8 || command.length < 4) {
-	                            System.err.println("ERROR: use register <username> <password> <tag1 tag2... tag5> tag list must be max 5 tags long");
-	                            break;
-	                        }
+                    	if(command.length > 8 || command.length < 4) {
+                    		System.err.println("ERROR: use register <username> <password> <tag1 tag2... tag5> tag list must be max 5 tags long");
+                    		break;
+                    	}
 	
 	                        // Creo la lista di tag da inviare al server
 	                        // Tutti i tag vengono convertiti in minuscolo
@@ -211,8 +220,8 @@ public class WinClientMain {
 	
 	                        // Controllo se la registrazione e' andata a buon fine
 	                        if(serverRegister.registerUser(command[1], command[2], tagList) == 0)
-	                            System.out.println("User " + command[1] + " has been registred! You can now log in...");
-	                        else System.err.println("Username already in use, try logging in or choose another username");
+	                            System.out.println("< User " + command[1] + " has been registred! You can now log in...");
+	                        else System.err.println("ERROR: Username already in use, try logging in or choose another username");
 	                        
                         break;
 
@@ -224,7 +233,7 @@ public class WinClientMain {
                         }
                         
                         if(winClient.currentUser != null) {
-                        	System.err.println("You are already logged in");
+                        	System.err.println("ERROR: You are already logged in");
                         	break;
                         }
 
@@ -256,6 +265,7 @@ public class WinClientMain {
                         // Controllo se l'utente ha gia' effettuato il login
                         if(winClient.currentUser == null) {
                             System.err.println("No user logged in, cannot log out");
+                            break;
                         }
 
                         // Creo la stringa da inviare al server con "logout <username>"
@@ -283,9 +293,7 @@ public class WinClientMain {
                             winClient.listFollowers.clear();
                             winClient.disconnectMulticast();
 
-                        } else if(logoutResponse.equals("USER-NOT-FOUND")) {
-                            System.err.println("Username not found, login or register");
-                        }
+                        } else throw new InvalidServerResponseException("Invalid logout response");
 
                         break;
                     case "list":
@@ -297,6 +305,7 @@ public class WinClientMain {
 
                         if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
+                            break;
                         }
 
                         // Nel caso del comando "list followers" gestisco lato client
@@ -478,7 +487,7 @@ public class WinClientMain {
                         }
                         
                         if(winClient.currentUser == null) {
-                            System.err.println("User not logged in");
+                            System.err.println("ERROR: User not logged in");
                         }
 
                         if(command[1].equals("feed")) {
@@ -520,29 +529,151 @@ public class WinClientMain {
                             String showpostResponse = WinUtils.receive(clientSocket);
                             
                             if(showpostResponse.equals("POST-NOT-FOUND")) {
-                            	System.out.println("The post you requested doesn't exist");
+                            	System.err.println("The post you requested doesn't exist");
                             } else {
                             	WinPost curPost = gson.fromJson(showpostResponse.toString(), WinPost.class);
                             	
-                            	System.out.println("POST:");
+                            	System.out.println("\nPOST:");
                             	System.out.println("'" + curPost.getPostTitle() + "'");
-                            	System.out.println("'" + curPost.getPostAuthor() + "'");
+                            	System.out.println("'" + curPost.getPostContent() + "'");
                             	System.out.println("By: " + curPost.getPostAuthor() + " ID:" + curPost.getIdPost().toString());
+                            	System.out.println("Upvotes " + curPost.getUpvoteCount());
+                            	System.out.println(curPost.getComments().size());
                             	
                             	if(curPost.getPostAuthor().equals(winClient.currentUser)) {
-                            		System.out.println("Want to delete this post? type -> delete <idPost>");
+                            		System.out.println("\nWant to delete this post? type -> delete <idPost>");
+                            		System.out.println("Otherwise type -> no");
+                            		System.out.print("> ");
+                            		
+                            		String delete = scan.nextLine();
+                            		
+                            		if(delete.equals("no")) break;
+                            		
+                            		
+                            		String[] deleteInfo = delete.split(" ");
+                            		
+                            		if(!delete.contains("delete") && deleteInfo.length != 2) {
+                            			System.err.println("ERROR: delete <idPost>");                   
+                            			break;
+                            		}
+                            		
+                           			String deleteMes = delete + " " + winClient.currentUser;
+                        			                        	                                	
+                                    WinUtils.send(deleteMes, clientSocket);
+
+                                    String deleteResponse = WinUtils.receive(clientSocket);
+                                    
+                                    if(deleteResponse.equals("DELETE-OK")) {
+                                    	System.out.println("> The post was successfully deleted!");
+                                    } else if(deleteResponse.equals("POST-NOT-FOUND")) {
+                                    	System.err.println("The post you tried to delete does not exist");
+                                    }
+                                    
                             		break;
                             	}
                             	
                             	if(curPost.getFeed()) {
-                            		// se l'utente ha il post nel suo feed puo' votarlo o commentare
-                            		System.out.println("post in feed");
+                            		// Se l'utente ha il post nel suo feed puo' votarlo o commentare
+                            		System.out.println("\nIf you want to add a comment on this post type -> comment <idPost> \"<comment>\"");
+                            		System.out.println("If you want to rate this post type -> rate <idPost> <vote>");
+                            		System.out.println("<vote> can be <+1> or <-1>");
+                            		System.out.println("Otherwise type -> no");
+                            		System.out.print("> ");
+                            		
+                            		String newAction = scan.nextLine();
+                            		
+                            		if(newAction.equals("no")) break;
+                            		
+                            		
+                            		String[] actionInfo = newAction.split(" ");
+                            		
+                            		// Controllo che l'utente abbia inserito l'input corretto
+                            		
+                            		if((!newAction.contains("rate") && !newAction.contains("comment"))) {
+                            			System.err.println("ERROR: comment <idPost> \"<comment>\"");   
+                            			System.err.println("ERROR: rate <idPost> <vote>");
+                            			break;
+                            		}
+                            		
+                            		// Voto
+                            		if(actionInfo[0].equals("rate")) {
+                            			
+                            			if(actionInfo.length != 3) {
+                            				System.err.println("ERROR: rate <idPost> <vote>");
+                            				break;
+                            			}
+                            			
+                            			if(!actionInfo[2].equals("+1") && !actionInfo[2].equals("-1")) {
+                            				System.out.println("<vote> can be <+1> or <-1>");
+                            				break;
+                            			}
+                            			
+                               			String rate = newAction + " " + winClient.currentUser;
+	                                	
+                                        WinUtils.send(rate, clientSocket);
+
+                                        String rateResponse = WinUtils.receive(clientSocket);
+                                        
+                                        if(rateResponse.equals("RATE-OK")) {
+                                        	System.out.println("Your vote was added to the post!");
+                                        } else if(rateResponse.equals("POST-NOT-FOUND")) {
+                                        	System.err.println("The post you tried to rate does not exist");
+                                        } else if(rateResponse.equals("ALREADY-RATED")) {
+                                        	System.err.println("You cannot rate the same post more than once");
+                                        }
+
+                            		}
+                            		
+                            		// Commento
+                            		if(actionInfo[0].equals("comment")) {
+                            			String[] comment = newAction.split("\"");
+                            			if(comment.length != 2) {
+                            				System.err.println("ERROR: comment <idPost> \"<comment>\"");
+                            				break;
+                            			}
+
+                            			String commentMes = newAction + winClient.currentUser;
+	                                	
+                                        WinUtils.send(commentMes, clientSocket);
+
+                                        String commentResponse = WinUtils.receive(clientSocket);
+                                        
+                                        if(commentResponse.equals("COMMENT-OK")) {
+                                        	System.out.println("Your comment was added to the post!");
+                                        } else if(commentResponse.equals("POST-NOT-FOUND")) {
+                                        	System.err.println("The post you tried to rate does not exist");
+                                        }
+                            		}
+                            		
+                            		break;
                             	}
                             	
                             }                        
                         }
                         
                         break;
+                    
+                    case "rewin":
+                    	
+                    	if(winClient.currentUser == null) {
+                            System.err.println("User not logged in");
+                        }
+                        
+                    	if(command.length != 2) {
+                    		System.out.println("ERROR: use -> rewin <idPost>");
+                    	} 
+                    	
+                    	String rewin = action + " " + winClient.currentUser;
+                    	
+                        WinUtils.send(rewin, clientSocket);
+
+                        String rewinResponse = WinUtils.receive(clientSocket);
+                        
+                        if(rewinResponse.endsWith("REWIN-OK")) {
+                        	System.out.println("< You rewinned the post!");
+                        } else System.out.println(rewinResponse);
+                    	
+                    	break;
                     case "wallet":
                     	
                         if(winClient.currentUser == null) {
@@ -560,34 +691,36 @@ public class WinClientMain {
                     	}
                     	break;
                     	
-                    case "delete":
+                    case "delete":                    	
                     	System.err.println("ERROR: to delete a post you must first do -> show post <idPost>");
-                    	System.err.println("You can delete a post only if you are the author");
-                    	
-               			String deleteMes = action + " " + winClient.currentUser;
-            			
-            			System.out.println(deleteMes);
-                    	
-                        WinUtils.send(deleteMes, clientSocket);
-
-                        String deleteResponse = WinUtils.receive(clientSocket);
-                        
-                        if(deleteResponse.equals("DELETE-OK")) {
-                        	System.out.println("The post was successfully deleted!");
-                        } else if(deleteResponse.equals("POST-NOT-FOUND")) {
-                        	System.err.println("The post you tried to delete does not exist");
-                        }
-                        
+                    	System.err.println("You can delete a post only if you are the author");                  	                        
                         break;
-
-                    default:
+                        
+                    case "comment":
+                    	System.err.println("ERROR: to comment on a post you must first do -> show post <idPost>");
+                    	System.err.println("You can comment on a post only if it is in your feed");                  	                        
+                        break;
+                        
+                    case "rate":
+                    	System.err.println("ERROR: to rate a post you must first do -> show post <idPost>");
+                    	System.err.println("You can rate a post only if it is in your feed");                  	                        
+                        break;
+                        
+                    case "help":
+                    	System.err.print("help");
+                    	break;
+				default:
                         System.out.println("Command " + command[0] + " not recognized");
+                        break;
                 }
+                
+                System.out.print("> ");
             }
             System.out.println("close");
             scan.close();
+            
         } catch (IOException e1) {
-            // TODO Auto-generated catch block
+            System.err.println("ERROR: problem communicating with server: " + e1.getMessage());
             e1.printStackTrace();
         }
 

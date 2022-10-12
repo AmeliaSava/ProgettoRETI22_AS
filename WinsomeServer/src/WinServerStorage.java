@@ -105,19 +105,12 @@ public class WinServerStorage {
     }
 
     public void logoutUser(String username, SelectionKey key) {
+    	
+    	// I dati dell'utente sono stati persi
+        if(!(userMap.containsKey(username))) throw new CorruptedStorageMemoryException("User data lost");
 
-        //l'utente non era registrato
-        if(!(userMap.containsKey(username))) {
-            key.attach("USER-NOT-FOUND");
-            return;
-        }
-
-        //l'utente non era online
         if(onlineUsers.containsKey(username)) onlineUsers.remove(username);
-        else {
-            key.attach("USER-NOT-FOUND");
-            return;
-        }
+        else throw new CorruptedStorageMemoryException("User data lost");
 
         key.attach("LOGOUT-OK");
     }
@@ -322,8 +315,9 @@ public class WinServerStorage {
     		WinPost curPost = postMap.get(idPost);
     		
     		if(curPost == null) {
-    			// e' sparito un post
-    			// ECCEZIONE
+    			info = "[deleted]/[deleted]/[deleted]";
+    			blog.add(info);
+    			continue;
     		}
     		
     		info = curPost.getIdPost().toString();
@@ -448,9 +442,16 @@ public class WinServerStorage {
     
     public void deletePost(String username, UUID postID, SelectionKey key) {
     	
-    	if(!postMap.containsKey(postID)) {
+    	WinPost curPost = postMap.get(postID); 
+    	
+    	if(curPost == null) {
     		key.attach("POST-NOT-FOUND");
     		return;
+    	}
+    	
+    	// rimuovo tutti i rewin
+    	for(String user : curPost.getRewins()) {
+    		userMap.get(user).removeBlog(postID);
     	}
     	
     	postMap.remove(postID);
@@ -466,26 +467,70 @@ public class WinServerStorage {
     	
     	//rimuovo il post dal feed di tutti i suoi followers
     	for(String user : curUser.getfollowers()) {
-    		System.out.println(user);
-    		System.out.println(userMap.get(user).getFeed());
     		userMap.get(user).getFeed().remove(postID);
-    		System.out.println(userMap.get(user).getFeed());
     	}
     	
     	key.attach("DELETE-OK");
     	
     }
     
-    public void rewinPost() {
+    public void rewinPost(String username, UUID postID, SelectionKey key) {
+    	
+
+    	WinPost curPost = postMap.get(postID);    	
+    	WinUser curUser = userMap.get(username);
+    	
+    	if(curPost == null) {
+    		key.attach("POST-NOT-FOUND");
+    		return;
+    	}
+    	
+    	if(curUser == null) throw new CorruptedStorageMemoryException("ERROR: corrupted user memory");
+    	
+    	if(!curUser.getFeed().contains(postID)) {
+    		key.attach("POST-NOT-IN-FEED");
+    		return;
+    	}
+    	
+    	// Controllo che l'utente non abbia gia' rewwinato il post
+    	if(curUser.getBlog().contains(postID)) {
+    		key.attach("ALREADY-REWIN");
+    		return;
+    	}
+    	
+    	curUser.updateBlog(postID);
+    	curPost.addRewin(username);
+    	
+    	
+    	key.attach("REWIN-OK");
+    }
+    
+    public void ratePost(String uservoting, UUID postID, int vote, SelectionKey key) {
+    	
+    	WinPost postToRate = postMap.get(postID);
+    	
+    	if(postToRate == null) {
+    		key.attach("POST-NOT-FOUND");
+    		return;
+    	}
+    	
+    	if(postToRate.addRate(uservoting, vote) == -1) key.attach("ALREADY-RATED");
+    	else key.attach("RATE-OK");
     	
     }
     
-    public void ratePost() {
+    public void addComment(String usercommenting, UUID postID, String comment, SelectionKey key) {
     	
-    }
-    
-    public void addComment() {
+    	WinPost postToComment = postMap.get(postID);
     	
+    	if(postToComment == null) {
+    		key.attach("POST-NOT-FOUND");
+    		return;
+    	}
+    	
+    	postToComment.addComment(usercommenting, comment);
+    	
+    	key.attach("COMMENT-OK");
     }
     
     public void getWallet() {
