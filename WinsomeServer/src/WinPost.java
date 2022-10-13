@@ -103,4 +103,5 @@ public class WinPost {
     	
     	System.out.println("Comment added by " + curComment.getAuthor() + " on " + curComment.getTimestamp() + ": " + curComment.getComment());
     }
+    
 }

@@ -1,4 +1,5 @@
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -368,6 +369,7 @@ public class WinClientMain {
 
                         if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
+                            break;
                         }
 
                         // Creo la stringa da inviare al server con "follow <username da seguire> <username utente corrente>"
@@ -392,6 +394,7 @@ public class WinClientMain {
 
                         if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
+                            break;
                         }
 
                         // Creo la stringa da inviare al server con
@@ -418,6 +421,7 @@ public class WinClientMain {
                     	
                         if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
+                            break;
                         }
 
                         String blogMes = action + " " + winClient.currentUser;
@@ -451,6 +455,7 @@ public class WinClientMain {
 
                         if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
+                            break;
                         }
 
                         //catturo i dati del post
@@ -488,6 +493,7 @@ public class WinClientMain {
                         
                         if(winClient.currentUser == null) {
                             System.err.println("ERROR: User not logged in");
+                            break;
                         }
 
                         if(command[1].equals("feed")) {
@@ -657,10 +663,12 @@ public class WinClientMain {
                     	
                     	if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
+                            break;
                         }
                         
                     	if(command.length != 2) {
                     		System.out.println("ERROR: use -> rewin <idPost>");
+                    		break;
                     	} 
                     	
                     	String rewin = action + " " + winClient.currentUser;
@@ -678,19 +686,72 @@ public class WinClientMain {
                     	
                         if(winClient.currentUser == null) {
                             System.err.println("User not logged in");
+                            break;
                         }
                         
                     	if(command.length == 1) {
-                    		System.out.println("wallet");
+                    		
+                    		String wallet = action + " " + winClient.currentUser;
+                        	
+                            WinUtils.send(wallet, clientSocket);
+
+                            String walletResponse = WinUtils.receive(clientSocket);
+                            
+                            JsonObject walletJson = new Gson().fromJson(walletResponse, JsonObject.class);
+                                                        
+                            if(walletJson.get("result").getAsInt() == 0) {
+                            	System.out.println("< " + walletJson.get("result-msg").getAsString());
+                            	
+                            	List<String> transactionList = gson.fromJson(walletJson.get("transaction-list").getAsString(), type);
+                            	
+                            	for(String transaction : transactionList) {
+                            		
+                            		String[] values = transaction.split("/");
+                            	
+                            		System.out.printf("%.2f\n", Double.parseDouble(values[0]));
+                            		System.out.println(values[1]);
+                            	}
+                            	System.out.println("< TOTAL " + walletJson.get("wallet-tot").getAsDouble());
+                            	
+                         
+                            } else System.out.println(walletJson.get("result-msg").getAsString());
+                            break;
+                            
                     	} else if(command[1].equals("btc")) {
                     		System.out.println("wallet btc");
+                    		
+                    		String walletbtc = action + " " + winClient.currentUser;
+                        	
+                            WinUtils.send(walletbtc, clientSocket);
+
+                            String walletbtcResponse = WinUtils.receive(clientSocket);
+                            
+                            JsonObject walletbtcJson = new Gson().fromJson(walletbtcResponse, JsonObject.class);
+                                                        
+                            if(walletbtcJson.get("result").getAsInt() == 0) {
+                            	System.out.println("< " + walletbtcJson.get("result-msg").getAsString());
+                            	
+                            	List<String> transactionList = gson.fromJson(walletbtcJson.get("transaction-list").getAsString(), type);
+                            	
+                            	for(String transaction : transactionList) {
+                            		
+                            		String[] values = transaction.split("/");
+                            	
+                            		System.out.printf("%.2f\n", Double.parseDouble(values[0]));
+                            		System.out.println(values[1]);
+                            	}
+                            	System.out.println("< TOTAL " + walletbtcJson.get("wallet-tot").getAsDouble());
+                            	
+                         
+                            } else System.out.println(walletbtcJson.get("result-msg").getAsString());
+                            break;
                     	} else {
                     		System.err.println("ERROR:");
                     		System.err.println("correct use -> 'wallet' to see your wallet");
                     		System.err.println("'wallet btc' to see your wallet in bitcoin");
+                    		break;
                     	}
-                    	break;
-                    	
+                    	                    	
                     case "delete":                    	
                     	System.err.println("ERROR: to delete a post you must first do -> show post <idPost>");
                     	System.err.println("You can delete a post only if you are the author");                  	                        

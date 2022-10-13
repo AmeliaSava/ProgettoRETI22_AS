@@ -4,12 +4,13 @@ import java.rmi.RemoteException;
 
 public class NotificationServiceServerImpl extends RemoteObject implements NotificationServiceServer {
 
-    //private List<NotificationServiceClient> registredClients;
+
+	private static final long serialVersionUID = -2152304118811415827L;
+	
     private ConcurrentHashMap<String, NotificationServiceClient> registeredClients;
 
-    public NotificationServiceServerImpl(ConcurrentHashMap<String, WinUser> onlineUsers) {
-        super();
-        //registredClients = new ArrayList<NotificationServiceClient>();
+    public NotificationServiceServerImpl() {
+        super();     
         registeredClients = new ConcurrentHashMap<String, NotificationServiceClient>();
     }
 

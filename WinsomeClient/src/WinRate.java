@@ -15,4 +15,6 @@ public class WinRate {
 	public String getUserrating() { return userrating; }
 	
 	public int getRate() { return rate; }
+	
+	public Date getTimestamp() { return timestamp; }
 }

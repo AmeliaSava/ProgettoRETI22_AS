@@ -163,8 +163,12 @@ public class WinServerWorker implements Runnable {
             	
             	break;
             case "wallet":
+            	// args[1] -> user || btc
+            	// args[2] -> if args[1] == btc then user
+            	if(args[1].equals("btc")) {
+            		serverStorage.getWalletBitcoin(args[2], keyWorker);
+            	} else serverStorage.getWallet(args[1], keyWorker);
             	break;
-                
         }
 
         // Comunico al server che c'e' una risposta da mandare

@@ -33,17 +33,17 @@ public class WinServerMain {
     // Informazioni per la persistenza nel file system
     private WinServerStorageKeeper serverStorageKeeper;
     private Thread keeperThread;
+    private int saveTime;
 
     private ThreadPoolExecutor threadPool;
 
     // Informazioni per il calcolo periodico delle ricompense
     private WinRewardCalculator rewardCalculator;
     private Thread calcThread;
+    private int authorPercentage;
 
     private static WinServerMain winServer;
-
-    private ConcurrentHashMap<String, WinUser> onlineUsers;
-
+   
     private NotificationServiceServerImpl followersRMI;
 
     public void configServer () {
@@ -83,6 +83,12 @@ public class WinServerMain {
                         case "REWARDTIME":
                             rewardTime = Integer.parseInt(st.nextToken());
                             break;
+                        case "AUTHOR_PERCENTAGE":
+                        	authorPercentage = Integer.parseInt(st.nextToken());
+                        	break;
+                        case "SAVETIME":
+                        	saveTime = Integer.parseInt(st.nextToken());
+                        	break;
                     }
 
                 }
@@ -92,7 +98,7 @@ public class WinServerMain {
     }
 
     private void startThreadPool() {
-        //rejection handler
+        //TODO rejection handler
         //la lista?
         //threadfactory?
         threadPool = new ThreadPoolExecutor(0,100, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10));
@@ -119,7 +125,7 @@ public class WinServerMain {
     public void notificationServiceRegister() {
 
         try {
-            followersRMI = new NotificationServiceServerImpl(onlineUsers);
+            followersRMI = new NotificationServiceServerImpl();
             NotificationServiceServer stub2 = (NotificationServiceServer) UnicastRemoteObject.exportObject(followersRMI, 39000);
             LocateRegistry.createRegistry(RMIportfollowers);
             Registry registry = LocateRegistry.getRegistry(RMIportfollowers);
@@ -137,7 +143,7 @@ public class WinServerMain {
         // Faccio partire il thread per il calcolo periodico delle risorse
         // Gestisce la comunicazione UDP multicast
 
-        rewardCalculator = new WinRewardCalculator(serverStorage, rewardTime, multicastAddress, UDPport);
+        rewardCalculator = new WinRewardCalculator(serverStorage, rewardTime, multicastAddress, UDPport, authorPercentage);
         calcThread = new Thread(rewardCalculator);
         calcThread.start();
     }
@@ -149,7 +155,7 @@ public class WinServerMain {
 
     public void startStorageKeeper() {
 
-        serverStorageKeeper = new WinServerStorageKeeper(serverStorage, 100);
+        serverStorageKeeper = new WinServerStorageKeeper(serverStorage, saveTime);
         keeperThread = new Thread(serverStorageKeeper);
         keeperThread.start();
     }
@@ -185,7 +191,7 @@ public class WinServerMain {
 
         while(true) {
             try {
-                // ATTENZIONE bloccante fino a che non c'è una richeista di connessione
+                // TODO bloccante fino a che non c'è una richeista di connessione
                 selector.select(1000);
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -230,12 +236,10 @@ public class WinServerMain {
                         //scrittura disponibile
                         SocketChannel client = (SocketChannel) key.channel();
 
-                        //ATTENZIONE controllare che l'attachment ci sia?
-                        //ATTENZIONE casting a stringa brutto?
+                        //TODO controllare che l'attachment ci sia?
+                        //TODO casting a stringa brutto?
                         WinUtils.send((String)key.attachment(), client);
-                        
-                        System.out.println("dopo send");
-                        
+                                                
                         //dopo aver scritto torno in lettura
                         key.interestOps(SelectionKey.OP_READ);
                     }
@@ -267,7 +271,7 @@ public class WinServerMain {
 
         System.out.println("Listening on port: " + TCPport);
 
-        //ATTENZIONE RMI? punto adatto?
+        //TODO RMI? punto adatto?
 
         winServer.registrationServiceRegister();
         winServer.notificationServiceRegister();

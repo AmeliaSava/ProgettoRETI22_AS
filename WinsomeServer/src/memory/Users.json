@@ -1,28 +1,276 @@
 {
+  "seagull": {
+    "idUser": "061c07de-f94f-48f5-904f-1bdab1702685",
+    "username": "seagull",
+    "password": "AAAA",
+    "tagList": [
+      "screaming",
+      "destruction",
+      "fish"
+    ],
+    "followedUsers": [
+      "honker"
+    ],
+    "followers": [],
+    "blog": [],
+    "feed": [
+      "b8887646-156f-487c-a638-9c030b186c83",
+      "867ad437-3f89-4666-b58d-a8ad4ebd8902"
+    ],
+    "wallet": [
+      {
+        "value": 1.0636779230224398,
+        "timestamp": "Oct 12, 2022, 10:19:08 PM"
+      },
+      {
+        "value": 1.5577588990281472,
+        "timestamp": "Oct 12, 2022, 10:34:33 PM"
+      }
+    ],
+    "walletTot": 2.0
+  },
+  "owl": {
+    "idUser": "e41bbda1-a392-4cb6-b0f3-1f81c3378bc9",
+    "username": "owl",
+    "password": "hoot",
+    "tagList": [
+      "hooting",
+      "bells"
+    ],
+    "followedUsers": [
+      "honker"
+    ],
+    "followers": [],
+    "blog": [],
+    "feed": [
+      "b8887646-156f-487c-a638-9c030b186c83",
+      "867ad437-3f89-4666-b58d-a8ad4ebd8902"
+    ],
+    "wallet": [
+      {
+        "value": 2.8511314858883376,
+        "timestamp": "Oct 12, 2022, 6:22:42 PM"
+      },
+      {
+        "value": 1.4255657429441688,
+        "timestamp": "Oct 12, 2022, 6:22:52 PM"
+      },
+      {
+        "value": 0.9503771619627792,
+        "timestamp": "Oct 12, 2022, 6:23:02 PM"
+      },
+      {
+        "value": 0.7127828714720844,
+        "timestamp": "Oct 12, 2022, 6:23:12 PM"
+      },
+      {
+        "value": 0.5702262971776675,
+        "timestamp": "Oct 12, 2022, 6:23:22 PM"
+      },
+      {
+        "value": 0.4751885809813896,
+        "timestamp": "Oct 12, 2022, 6:23:32 PM"
+      },
+      {
+        "value": 0.4073044979840482,
+        "timestamp": "Oct 12, 2022, 6:23:42 PM"
+      },
+      {
+        "value": 0.3563914357360422,
+        "timestamp": "Oct 12, 2022, 6:23:52 PM"
+      },
+      {
+        "value": 0.3167923873209264,
+        "timestamp": "Oct 12, 2022, 6:24:02 PM"
+      },
+      {
+        "value": 0.28511314858883374,
+        "timestamp": "Oct 12, 2022, 6:24:12 PM"
+      },
+      {
+        "value": 1.5577588990281472,
+        "timestamp": "Oct 12, 2022, 10:34:33 PM"
+      }
+    ],
+    "walletTot": 4.0
+  },
   "honker": {
-    "idUser": "a5c4a373-9c48-4f93-8cf5-d8b8bdd11317",
+    "idUser": "9239ccd4-47e7-4a4c-9285-892ce2447cd6",
     "username": "honker",
-    "password": "honkhonk",
+    "password": "honk",
     "tagList": [
       "honking",
       "seeds",
       "bells",
-      "destruction"
+      "destruction",
+      "water"
     ],
     "followedUsers": [],
     "followers": [
-      "penguin"
+      "seagull",
+      "owl",
+      "penguin",
+      "birb",
+      "duck"
     ],
-    "wallet": 0,
     "blog": [
-      "2407b7a2-be9c-4d80-832e-9ed14e737213",
-      "2e23a7b1-1327-4771-b918-58dc4ce10f40",
-      "a531f9e1-1b51-426f-ad43-ea20eff23eb5"
+      "b8887646-156f-487c-a638-9c030b186c83",
+      "867ad437-3f89-4666-b58d-a8ad4ebd8902"
     ],
-    "feed": []
+    "feed": [],
+    "wallet": [
+      {
+        "value": 2.8511314858883376,
+        "timestamp": "Oct 12, 2022, 6:22:42 PM"
+      },
+      {
+        "value": 1.4255657429441688,
+        "timestamp": "Oct 12, 2022, 6:22:52 PM"
+      },
+      {
+        "value": 0.9503771619627792,
+        "timestamp": "Oct 12, 2022, 6:23:02 PM"
+      },
+      {
+        "value": 0.7127828714720844,
+        "timestamp": "Oct 12, 2022, 6:23:12 PM"
+      },
+      {
+        "value": 0.5702262971776675,
+        "timestamp": "Oct 12, 2022, 6:23:22 PM"
+      },
+      {
+        "value": 0.4751885809813896,
+        "timestamp": "Oct 12, 2022, 6:23:32 PM"
+      },
+      {
+        "value": 0.4073044979840482,
+        "timestamp": "Oct 12, 2022, 6:23:42 PM"
+      },
+      {
+        "value": 0.3563914357360422,
+        "timestamp": "Oct 12, 2022, 6:23:52 PM"
+      },
+      {
+        "value": 0.3167923873209264,
+        "timestamp": "Oct 12, 2022, 6:24:02 PM"
+      },
+      {
+        "value": 0.28511314858883374,
+        "timestamp": "Oct 12, 2022, 6:24:12 PM"
+      },
+      {
+        "value": 1.5955168845336596,
+        "timestamp": "Oct 12, 2022, 10:18:53 PM"
+      },
+      {
+        "value": 0.0,
+        "timestamp": "Oct 12, 2022, 10:34:33 PM"
+      },
+      {
+        "value": 2.3366383485422206,
+        "timestamp": "Oct 12, 2022, 10:34:33 PM"
+      }
+    ],
+    "walletTot": 6.0
+  },
+  "duck": {
+    "idUser": "240bbd01-688c-4de5-a4dc-854e6e25496e",
+    "username": "duck",
+    "password": "quack",
+    "tagList": [
+      "water",
+      "bread"
+    ],
+    "followedUsers": [
+      "honker"
+    ],
+    "followers": [],
+    "blog": [],
+    "feed": [
+      "b8887646-156f-487c-a638-9c030b186c83",
+      "867ad437-3f89-4666-b58d-a8ad4ebd8902"
+    ],
+    "wallet": [
+      {
+        "value": 1.5577588990281472,
+        "timestamp": "Oct 12, 2022, 10:34:33 PM"
+      }
+    ],
+    "walletTot": 1.0
+  },
+  "birb": {
+    "idUser": "17e5ca52-85c1-42a4-938e-8ad5346aaa90",
+    "username": "birb",
+    "password": "seeds",
+    "tagList": [
+      "seeds",
+      "birbs",
+      "sticks"
+    ],
+    "followedUsers": [
+      "honker"
+    ],
+    "followers": [],
+    "blog": [],
+    "feed": [
+      "b8887646-156f-487c-a638-9c030b186c83",
+      "867ad437-3f89-4666-b58d-a8ad4ebd8902"
+    ],
+    "wallet": [
+      {
+        "value": 2.8511314858883376,
+        "timestamp": "Oct 12, 2022, 6:22:42 PM"
+      },
+      {
+        "value": 1.4255657429441688,
+        "timestamp": "Oct 12, 2022, 6:22:52 PM"
+      },
+      {
+        "value": 0.9503771619627792,
+        "timestamp": "Oct 12, 2022, 6:23:02 PM"
+      },
+      {
+        "value": 0.7127828714720844,
+        "timestamp": "Oct 12, 2022, 6:23:12 PM"
+      },
+      {
+        "value": 0.5702262971776675,
+        "timestamp": "Oct 12, 2022, 6:23:22 PM"
+      },
+      {
+        "value": 0.4751885809813896,
+        "timestamp": "Oct 12, 2022, 6:23:32 PM"
+      },
+      {
+        "value": 0.4073044979840482,
+        "timestamp": "Oct 12, 2022, 6:23:42 PM"
+      },
+      {
+        "value": 0.3563914357360422,
+        "timestamp": "Oct 12, 2022, 6:23:52 PM"
+      },
+      {
+        "value": 0.3167923873209264,
+        "timestamp": "Oct 12, 2022, 6:24:02 PM"
+      },
+      {
+        "value": 0.28511314858883374,
+        "timestamp": "Oct 12, 2022, 6:24:12 PM"
+      },
+      {
+        "value": 1.0636779230224398,
+        "timestamp": "Oct 12, 2022, 10:18:58 PM"
+      },
+      {
+        "value": 1.5577588990281472,
+        "timestamp": "Oct 12, 2022, 10:34:33 PM"
+      }
+    ],
+    "walletTot": 5.0
   },
   "penguin": {
-    "idUser": "173e1e29-8e26-4257-a731-63fcd8e431a6",
+    "idUser": "f635febf-b175-4731-b5a3-c2f8023adb24",
     "username": "penguin",
     "password": "penpen",
     "tagList": [
@@ -34,16 +282,61 @@
       "honker"
     ],
     "followers": [],
-    "wallet": 0,
-    "blog": [
-      "f8a5a6b6-0b78-4c52-8c5e-47162ee555dc",
-      "4e431081-50cd-4132-a227-7bbbf6aa4fc9",
-      "daffc435-1653-4fdf-8fbc-c849496f5b6b"
-    ],
+    "blog": [],
     "feed": [
-      "2407b7a2-be9c-4d80-832e-9ed14e737213",
-      "2e23a7b1-1327-4771-b918-58dc4ce10f40",
-      "a531f9e1-1b51-426f-ad43-ea20eff23eb5"
-    ]
+      "b8887646-156f-487c-a638-9c030b186c83",
+      "867ad437-3f89-4666-b58d-a8ad4ebd8902"
+    ],
+    "wallet": [
+      {
+        "value": 2.8511314858883376,
+        "timestamp": "Oct 12, 2022, 6:22:42 PM"
+      },
+      {
+        "value": 1.4255657429441688,
+        "timestamp": "Oct 12, 2022, 6:22:52 PM"
+      },
+      {
+        "value": 0.9503771619627792,
+        "timestamp": "Oct 12, 2022, 6:23:02 PM"
+      },
+      {
+        "value": 0.7127828714720844,
+        "timestamp": "Oct 12, 2022, 6:23:12 PM"
+      },
+      {
+        "value": 0.5702262971776675,
+        "timestamp": "Oct 12, 2022, 6:23:22 PM"
+      },
+      {
+        "value": 0.4751885809813896,
+        "timestamp": "Oct 12, 2022, 6:23:32 PM"
+      },
+      {
+        "value": 0.4073044979840482,
+        "timestamp": "Oct 12, 2022, 6:23:42 PM"
+      },
+      {
+        "value": 0.3563914357360422,
+        "timestamp": "Oct 12, 2022, 6:23:52 PM"
+      },
+      {
+        "value": 0.3167923873209264,
+        "timestamp": "Oct 12, 2022, 6:24:02 PM"
+      },
+      {
+        "value": 0.28511314858883374,
+        "timestamp": "Oct 12, 2022, 6:24:12 PM"
+      },
+      {
+        "value": 1.0636779230224398,
+        "timestamp": "Oct 12, 2022, 10:19:06 PM"
+      },
+      {
+        "value": 1.5577588990281472,
+        "timestamp": "Oct 12, 2022, 10:34:33 PM"
+      }
+    ],
+    "walletTot": 5.0
   }
 }

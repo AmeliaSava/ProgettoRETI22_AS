@@ -1,6 +1,8 @@
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
+import java.net.URL;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -533,11 +535,70 @@ public class WinServerStorage {
     	key.attach("COMMENT-OK");
     }
     
-    public void getWallet() {
+    public void getWallet(String username, SelectionKey key) {
     	
+    	WinUser curUser = userMap.get(username);
+    	
+    	if(curUser == null) {
+    		//TODO
+    	}
+    	
+    	JsonObject walletJson = new JsonObject();
+    	
+    	List<String> transactionList = new ArrayList<String>();
+    	
+    	if(curUser.getWallet().size() == 0) {
+    		walletJson.addProperty("result", -1);
+    		walletJson.addProperty("result-msg", "Your wallet is empty");
+    		key.attach(walletJson.toString());
+    		return;
+    	}
+    	
+    	for(WinTransaction transaction : curUser.getWallet()) {
+    		String t = transaction.getValue()+"/"+transaction.getTimestamp().toString();
+    		transactionList.add(t);
+    	}
+    	
+    	String listJson = WinUtils.prepareJson(transactionList);
+    	
+    	walletJson.addProperty("result", 0);
+		walletJson.addProperty("result-msg", "Your wallet: ");    	
+    	walletJson.addProperty("wallet-tot", curUser.getWalletTot());
+    	walletJson.addProperty("transaction-list", listJson);
+    	key.attach(walletJson.toString());
     }
     
-    public void getWalletBitcoin() {
+    public void getWalletBitcoin(String username, SelectionKey key) {
+    	WinUser curUser = userMap.get(username);
     	
+    	if(curUser == null) {
+    		//TODO
+    	}
+    	
+    	JsonObject walletJson = new JsonObject();
+    	
+    	List<String> transactionList = new ArrayList<String>();
+    	
+    	if(curUser.getWallet().size() == 0) {
+    		walletJson.addProperty("result", -1);
+    		walletJson.addProperty("result-msg", "Your wallet is empty");
+    		key.attach(walletJson.toString());
+    		return;
+    	}
+    	
+    	URL url = new URL();
+    	
+    	for(WinTransaction transaction : curUser.getWallet()) {
+    		String t = transaction.getValue()+"/"+transaction.getTimestamp().toString();
+    		transactionList.add(t);
+    	}
+    	
+    	String listJson = WinUtils.prepareJson(transactionList);
+    	
+    	walletJson.addProperty("result", 0);
+		walletJson.addProperty("result-msg", "Your wallet: ");    	
+    	walletJson.addProperty("wallet-tot", curUser.getWalletTot());
+    	walletJson.addProperty("transaction-list", listJson);
+    	key.attach(walletJson.toString());
     }
 }

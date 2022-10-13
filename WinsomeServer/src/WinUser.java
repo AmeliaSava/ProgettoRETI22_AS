@@ -15,7 +15,7 @@ public class WinUser {
     private List<UUID> feed;
     
     private List<WinTransaction> wallet;
-    private int walletTot;
+    private double walletTot;
 
     public WinUser(String username, String password, List<String> tagList) {
         this.idUser = UUID.randomUUID(); //trovare un modo per id univoco
@@ -52,6 +52,10 @@ public class WinUser {
     public List<UUID> getFeed() { return feed; }
 
     public List<UUID> getBlog() { return blog; }
+    
+    public List<WinTransaction> getWallet() { return wallet; }
+    
+    public double getWalletTot() { return walletTot; }
 
     public int followUser(String username) {
         if(followedUsers.contains(username)) return -1;
@@ -91,7 +95,7 @@ public class WinUser {
     	feed.remove(idPost);
     }
     
-    public void updateWallet(int value) {
+    public void updateWallet(double value) {
     	
     	WinTransaction newT = new WinTransaction(value);
     	

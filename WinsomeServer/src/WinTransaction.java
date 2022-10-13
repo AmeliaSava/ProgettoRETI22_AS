@@ -2,15 +2,15 @@ import java.util.Date;
 
 public class WinTransaction {
 	
-	private int value;
+	private double value;
 	private Date timestamp;
 	
-	public WinTransaction(int value) {
+	public WinTransaction(double value) {
 		this.value = value;
 		this.timestamp = new Date();
 	}
 	
-	public int getValue() { return value; }
+	public double getValue() { return value; }
 	
 	public Date getTimestamp() { return timestamp; }
 }
