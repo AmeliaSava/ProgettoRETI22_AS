@@ -5,7 +5,9 @@
     "postContent": "honk honk",
     "postTitle": "i love honking",
     "feed": false,
-    "rewins": [],
+    "rewins": [
+      "seagull"
+    ],
     "comments": [
       {
         "author": "seagull",
@@ -36,11 +38,6 @@
     "ratings": [
       {
         "rate": 1,
-        "timestamp": "Oct 12, 2022, 6:07:42 PM",
-        "userrating": "seagull"
-      },
-      {
-        "rate": 1,
         "timestamp": "Oct 12, 2022, 6:08:38 PM",
         "userrating": "owl"
       },
@@ -53,10 +50,15 @@
         "rate": -1,
         "timestamp": "Oct 12, 2022, 6:10:17 PM",
         "userrating": "birb"
+      },
+      {
+        "rate": -1,
+        "timestamp": "Oct 16, 2022, 9:56:12 PM",
+        "userrating": "seagull"
       }
     ],
-    "upvoteCount": 3,
-    "downvoteCount": 1
+    "upvoteCount": 2,
+    "downvoteCount": 2
   },
   "867ad437-3f89-4666-b58d-a8ad4ebd8902": {
     "idPost": "867ad437-3f89-4666-b58d-a8ad4ebd8902",

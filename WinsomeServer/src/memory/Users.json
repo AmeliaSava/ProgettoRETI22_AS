@@ -11,8 +11,12 @@
     "followedUsers": [
       "honker"
     ],
-    "followers": [],
-    "blog": [],
+    "followers": [
+      "honker"
+    ],
+    "blog": [
+      "b8887646-156f-487c-a638-9c030b186c83"
+    ],
     "feed": [
       "b8887646-156f-487c-a638-9c030b186c83",
       "867ad437-3f89-4666-b58d-a8ad4ebd8902"
@@ -28,6 +32,20 @@
       }
     ],
     "walletTot": 2.0
+  },
+  "pioppo": {
+    "idUser": "16b2f8e2-8072-417f-815a-c4c018a36823",
+    "username": "pioppo",
+    "password": "popo",
+    "tagList": [
+      "pioppi"
+    ],
+    "followedUsers": [],
+    "followers": [],
+    "blog": [],
+    "feed": [],
+    "wallet": [],
+    "walletTot": 0.0
   },
   "owl": {
     "idUser": "e41bbda1-a392-4cb6-b0f3-1f81c3378bc9",
@@ -105,13 +123,16 @@
       "destruction",
       "water"
     ],
-    "followedUsers": [],
-    "followers": [
+    "followedUsers": [
       "seagull",
+      "penguin"
+    ],
+    "followers": [
       "owl",
       "penguin",
       "birb",
-      "duck"
+      "duck",
+      "seagull"
     ],
     "blog": [
       "b8887646-156f-487c-a638-9c030b186c83",
@@ -281,7 +302,9 @@
     "followedUsers": [
       "honker"
     ],
-    "followers": [],
+    "followers": [
+      "honker"
+    ],
     "blog": [],
     "feed": [
       "b8887646-156f-487c-a638-9c030b186c83",

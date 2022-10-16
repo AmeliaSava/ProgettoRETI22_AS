@@ -130,6 +130,15 @@ public class WinClientMain {
 
         return;
     }
+    
+    private void callbackUnregister() {
+        try {
+            server.unregisterForCallback(stub2, currentUser);
+        } catch (RemoteException e) {
+        	System.err.println("ERROR: callback unregister " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     /*
      * Avvia un thread che si mettera' in attesa degli aggiornamenti sul wallet
@@ -152,6 +161,512 @@ public class WinClientMain {
         return;
     }
 
+    private void registerUser(String[] command) throws RemoteException {
+    	
+    	if(currentUser != null) {
+    		System.out.print("< ");
+    		System.err.println("ERROR: You are already logged in");
+        	return;
+        }
+    	
+    	// Creo la lista di tag da inviare al server
+    	// Tutti i tag vengono convertiti in minuscolo
+        // Nel caso di un tag ripetuto viene ignorato e non inserito
+        List<String> tagList = new ArrayList<String>();
+
+        for(int i = 3; i < command.length; i++) {
+            if(!tagList.contains(command[i].toLowerCase()))
+                tagList.add(command[i].toLowerCase());
+        }
+
+        // Controllo se la registrazione e' andata a buon fine
+        if(serverRegister.registerUser(command[1], command[2], tagList) == 0)
+            System.out.println("< User " + command[1] + " has been registred! You can now log in...");
+        else System.err.println("ERROR: Username already in use, try logging in or choose another username");
+    }
+    
+    private void loginUser(String action, String[] command) throws IOException {
+    	        
+        if(currentUser != null) {
+        	System.out.print("< ");
+        	System.err.println("ERROR: You are already logged in");
+        	return;
+        }
+
+        WinUtils.send(action, clientSocket);
+        String loginResponse = WinUtils.receive(clientSocket);
+        
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<String>>(){}.getType();
+        JsonObject loginJson = new Gson().fromJson(loginResponse, JsonObject.class);                                       
+       
+       // Il login e' andato a buon fine
+        if(loginJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + loginJson.get("result-msg").getAsString());
+            
+        	// Setto l'utente della sessione corrente
+            currentUser = command[1];
+            
+            // Recupero dalla risposta la lista dei follower gia' esistenti
+            listFollowers = gson.fromJson(loginJson.get("followers-list").getAsString(), type);
+        
+            // Registro l'utente corrent per la callback sulla lista dei followers
+            callbackRegister();
+            // Mi connetto al gruppo di multicast
+            connectMulticast();
+            
+        } else {
+        	System.out.print("< ");
+        	System.err.println(loginJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void logoutUser(String[] command) throws IOException {
+    	
+        // Nessun utente online
+        if(currentUser == null) {
+        	System.out.print("< ");
+            System.err.println("ERROR: No user logged in, cannot log out");
+            return;
+        }
+
+        // Creo la stringa da inviare al server con "logout <username>"
+        String logout = command[0] + " " + currentUser;
+        WinUtils.send(logout, clientSocket);
+        String logoutResponse = WinUtils.receive(clientSocket);
+        
+        JsonObject logoutJson = new Gson().fromJson(logoutResponse, JsonObject.class);                     
+
+        // Se il logout e' andato a buon fine resetto la sessione
+        // e mi disconnetto da multicast e callback
+        if(logoutJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + logoutJson.get("result-msg").getAsString());
+            //System.out.println(winClient.currentUser + " logged out");
+
+        	callbackUnregister();
+
+            currentUser = null;
+            listFollowers.clear();
+            disconnectMulticast();
+
+        } else {
+        	System.out.print("< ");
+        	System.err.println(logoutJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void listUsers(String action) throws IOException {
+    	
+        // Nessun utente online
+        if(currentUser == null) {
+        	System.out.print("< ");
+            System.err.println("ERROR: No user logged in");
+            return;
+        }
+                
+    	String list = action + " " + currentUser;
+        WinUtils.send(list, clientSocket);
+        String listResponse = WinUtils.receive(clientSocket);
+        
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<String>>(){}.getType();
+        JsonObject usersJson = new Gson().fromJson(listResponse, JsonObject.class);
+        
+        if(usersJson.get("result").getAsInt() == 0) {
+        	
+        	System.out.println("< " + usersJson.get("result-msg").getAsString());
+        	
+        	if(usersJson.get("users-list") == null) return;
+        	
+        	List<String> users = gson.fromJson(usersJson.get("users-list").getAsString(), type);
+        	        		
+            for (String info : users) {
+                String[] userTag = info.split("/");
+                System.out.println("Username: " + userTag[0]);
+                System.out.println("You have these tags in common:");
+                for (int i = 1; i < userTag.length; i++) System.out.println(userTag[i]);
+            }
+        	
+        } else {
+        	System.out.print("< ");
+        	System.err.println(usersJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void listFollowers() {
+    	
+        // Nessun utente online
+        if(currentUser == null) {
+        	System.out.print("< ");
+            System.err.println("ERROR: No user logged in");
+            return;
+        }
+
+        // Stampo le informazioni sulla lista dei followers
+
+        if(listFollowers.isEmpty()) {
+        	System.out.println("< You have no followers");
+        	return;
+        }
+
+        System.out.println(" < You have " + listFollowers.size() + " followers:");
+
+        for(String user : listFollowers) {
+            System.out.println(user);
+        }
+    }
+    
+    private void listFollowing(String action) throws IOException {
+    	     
+        if(currentUser == null) {
+            System.err.println("ERROR: No user logged in");
+            return;
+        }
+                               
+    	String list = action + " " + currentUser;
+        WinUtils.send(list, clientSocket);
+        String listResponse = WinUtils.receive(clientSocket);
+
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<String>>(){}.getType();
+        JsonObject followingJson = new Gson().fromJson(listResponse, JsonObject.class);
+        
+        if(followingJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + followingJson.get("result-msg").getAsString());
+            
+        	if(followingJson.get("following-list") == null) return;
+        	
+        	List<String> users = gson.fromJson(followingJson.get("following-list").getAsString(), type);
+        	
+        	for (String info : users) {
+                System.out.println("Username: " + info);
+            }
+        	
+        } else {
+        	System.out.print("< ");
+        	System.err.println(followingJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void followUser(String action) throws IOException {
+    	
+    	// Nessun utente online
+    	if(currentUser == null) {
+            System.err.println("ERROR: No user logged in");
+            return;
+        }
+
+        // Creo la stringa da inviare al server con "follow <username da seguire> <username utente corrente>"
+        String follow = action + " " + currentUser;
+        WinUtils.send(follow, clientSocket);
+        String followResponse = WinUtils.receive(clientSocket);
+        
+        JsonObject followJson = new Gson().fromJson(followResponse, JsonObject.class);
+
+        if(followJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + followJson.get("result-msg").getAsString());
+        } else {
+        	System.out.print("< ");
+        	System.err.println(followJson.get("result-msg").getAsString());
+        }  
+    }
+    
+    private void unfollowUser(String action) throws IOException {
+    	
+        if(currentUser == null) {
+        	System.err.println("ERROR: No user logged in");
+            return;
+        }
+
+        // Creo la stringa da inviare al server con
+        // "unfollow <username da non seguire piu'> <username utente corrente>"
+
+        String unfollow = action + " " + currentUser;
+        WinUtils.send(unfollow, clientSocket);
+        String unfollowResponse = WinUtils.receive(clientSocket);
+        
+        JsonObject unfollowJson = new Gson().fromJson(unfollowResponse, JsonObject.class);
+
+        if(unfollowJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + unfollowJson.get("result-msg").getAsString());
+        } else {
+        	System.out.print("< ");
+        	System.err.println(unfollowJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void viewBlog(String action) throws IOException {
+        
+    	if(currentUser == null) {
+    		System.err.println("ERROR: No user logged in");
+            return;
+        }
+
+        String blogMes = action + " " + currentUser;
+        WinUtils.send(blogMes, clientSocket);
+        String blogResponse = WinUtils.receive(clientSocket);
+        
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<String>>(){}.getType();
+        JsonObject blogJson = new Gson().fromJson(blogResponse, JsonObject.class);
+        
+        if(blogJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + blogJson.get("result-msg").getAsString());
+        	
+        	if(blogJson.get("blog") == null) return;
+        	
+        	List<String> blog = gson.fromJson(blogJson.get("blog").getAsString(), type);
+        	
+            for (String info : blog) {
+            	String[] blogEntry = info.split("/");
+             	System.out.println("Post ID: " + blogEntry[0]);
+             	System.out.println("Author: " + blogEntry[1]);
+             	System.out.println("Title: " + blogEntry[2]);
+            }
+            
+        } else {
+        	System.err.println(blogJson.get("result-msg").getAsString());
+        }       
+    }
+    
+    private void createPost(String action) throws IOException {
+    	
+      	 if(currentUser == null) {
+             System.err.println("ERROR: No user logged in");
+             return;
+         }
+
+        String post = action.concat(currentUser);
+        WinUtils.send(post, clientSocket);
+        String postResponse = WinUtils.receive(clientSocket);
+        
+        JsonObject postJson = new Gson().fromJson(postResponse, JsonObject.class);
+
+        if(postJson.get("result").getAsInt() == 0) {
+        	System.out.println(postJson.get("result-msg").getAsString());
+        } else {
+        	System.err.println(postJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void showFeed(String action) throws IOException {
+    	
+     	if(currentUser == null) {
+            System.err.println("ERROR: User not logged in");
+            return;
+        }
+    	
+        String feedMes = action + " " + currentUser;
+        WinUtils.send(feedMes, clientSocket);
+        String feedResponse = WinUtils.receive(clientSocket);
+        
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<String>>(){}.getType();
+        JsonObject feedJson = new Gson().fromJson(feedResponse, JsonObject.class);
+        
+        if(feedJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + feedJson.get("result-msg").getAsString());
+        	
+        	if(feedJson.get("feed") == null) return;
+        	
+        	List<String> feed = gson.fromJson(feedJson.get("feed").getAsString(), type);
+        	        	
+        	for (String info : feed) {
+                String[] feedEntry = info.split("/");
+                System.out.println("Post ID: " + feedEntry[0]);
+                System.out.println("Author: " + feedEntry[1]);
+                System.out.println("Title: " + feedEntry[2]);
+            }
+        } else {
+        	System.err.println(feedJson.get("result-msg").getAsString());
+        } 
+    }
+    
+    private void showPost(String action) throws IOException {
+    	
+    	if(currentUser == null) {
+            System.err.println("ERROR: User not logged in");
+            return;
+        }
+    	
+    	String postMes = action + " " + currentUser;   
+        WinUtils.send(postMes, clientSocket);
+        String showpostResponse = WinUtils.receive(clientSocket);
+        
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<String>>(){}.getType();
+        JsonObject postJson = new Gson().fromJson(showpostResponse, JsonObject.class);
+        
+        if(postJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + postJson.get("result-msg").getAsString());
+        	System.out.println("'" + postJson.get("title").getAsString() + "'");
+        	System.out.println("'" + postJson.get("content").getAsString() + "'");
+        	System.out.println("By: " + postJson.get("author").getAsString() + " ID: " + postJson.get("id").getAsString());
+        	System.out.println("Upvotes " + postJson.get("upvote").getAsInt());
+        	System.out.println("Dowvotes " + postJson.get("downvote").getAsInt());
+        	
+        	/*
+        	List<String> comments = gson.fromJson(postJson.get("comments").getAsString(), type);
+        	
+        	for(String comment : comments) {
+        		System.out.println(comment);
+        	}
+*/
+        } else {
+        	System.err.println(postJson.get("result-msg").getAsString());
+        } 
+    }
+    
+    private void deletePost(String action) throws IOException {
+   		
+
+    	if(currentUser == null) {
+            System.err.println("ERROR: User not logged in");
+            return;
+        }
+		
+		String deleteMes = action + " " + currentUser;		                        	                                	
+        WinUtils.send(deleteMes, clientSocket);
+        String deleteResponse = WinUtils.receive(clientSocket);
+        
+        JsonObject deleteJson = new Gson().fromJson(deleteResponse, JsonObject.class);
+        
+        if(deleteJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + deleteJson.get("result-msg").getAsString());
+        	
+        } else {
+        	System.err.println(deleteJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void rewinPost(String action) throws IOException {
+    	
+    	if(currentUser == null) {
+    		System.err.println("ERROR: User not logged in");
+            return;
+        }
+    	
+    	String rewin = action + " " + currentUser;
+        WinUtils.send(rewin, clientSocket);
+        String rewinResponse = WinUtils.receive(clientSocket);
+        
+        JsonObject rewinJson = new Gson().fromJson(rewinResponse, JsonObject.class);
+        
+        if(rewinJson.get("result").getAsInt() == 0) {     
+        	System.out.println("< " + rewinJson.get("result-msg").getAsString());
+        } else {
+        	System.err.println(rewinJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void ratePost(String action) throws IOException {
+ 		
+    	if(currentUser == null) {
+    		System.err.println("ERROR: User not logged in");
+            return;
+        }
+    	
+    	String rate = action + " " + currentUser;    	
+        WinUtils.send(rate, clientSocket);
+        String rateResponse = WinUtils.receive(clientSocket);
+        
+        JsonObject rateJson = new Gson().fromJson(rateResponse, JsonObject.class);
+        
+        if(rateJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + rateJson.get("result-msg").getAsString());
+        } else {
+        	System.err.println(rateJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void addComment(String action) throws IOException {
+		
+    	if(currentUser == null) {
+    		System.err.println("ERROR: User not logged in");
+            return;
+        }
+    	
+		String commentMes = action + currentUser;    	
+        WinUtils.send(commentMes, clientSocket);
+        String commentResponse = WinUtils.receive(clientSocket);
+        
+        JsonObject commentJson = new Gson().fromJson(commentResponse, JsonObject.class);
+        
+        if(commentJson.get("result").getAsInt() == 0) {
+        	System.out.println("< " + commentJson.get("result-msg").getAsString());
+        } else {
+        	System.err.println(commentJson.get("result-msg").getAsString());
+        }
+    }
+    
+    private void getWallet(String action) throws IOException {
+    	
+       	if(currentUser == null) {
+       		System.err.println("ERROR: No user logged in");
+        	return;
+        }
+		  
+		String wallet = action + " " + currentUser;
+	  	WinUtils.send(wallet, clientSocket);
+	  	String walletResponse = WinUtils.receive(clientSocket);
+
+
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<String>>(){}.getType();
+	  	JsonObject walletJson = new Gson().fromJson(walletResponse, JsonObject.class);
+	                                  
+	  	if(walletJson.get("result").getAsInt() == 0) {
+	  		System.out.println("< " + walletJson.get("result-msg").getAsString());
+	      	
+	      	List<String> transactionList = gson.fromJson(walletJson.get("transaction-list").getAsString(), type);
+	      	
+	      	for(String transaction : transactionList) {
+	      		
+	      		String[] values = transaction.split("/");
+	      	
+	      		System.out.printf("%.2f\n", Double.parseDouble(values[0]));
+	      		System.out.println(values[1]);
+	      	}
+	      	System.out.printf("< TOTAL %.2f\n", walletJson.get("wallet-tot").getAsDouble());
+	      	
+	   
+	      } else System.out.println(walletJson.get("result-msg").getAsString());
+    }
+    
+    private void getWalletBitcoin(String action) throws IOException {
+    	
+  	  if(currentUser == null) {
+  		  System.err.println("ERROR: No user logged in");
+          return;
+      }
+		
+  	  String walletbtc = action + " " + currentUser;
+  	  WinUtils.send(walletbtc, clientSocket);
+  	  String walletbtcResponse = WinUtils.receive(clientSocket);
+        
+
+      Gson gson = new Gson();
+      Type type = new TypeToken<List<String>>(){}.getType();
+  	  JsonObject walletbtcJson = new Gson().fromJson(walletbtcResponse, JsonObject.class);
+                                    
+  	  if(walletbtcJson.get("result").getAsInt() == 0) {
+  		  System.out.println("< " + walletbtcJson.get("result-msg").getAsString());
+        	
+  		  List<String> transactionList = gson.fromJson(walletbtcJson.get("transaction-list").getAsString(), type);
+        	
+  		  for(String transaction : transactionList) {
+        		
+  			  String[] values = transaction.split("/");
+        	
+  			  System.out.printf("%.2f\n", Double.parseDouble(values[0]));
+  			  System.out.println(values[1]);
+  		  }
+  		  
+  		  System.out.printf("< TOTAL %.2f\n", walletbtcJson.get("wallet-tot").getAsDouble());
+
+        } else System.out.println(walletbtcJson.get("result-msg").getAsString());
+    }
+    
     public static void main(String[] args) {
 
         //Parsing del file di configurazione
@@ -185,118 +700,47 @@ public class WinClientMain {
                 
                 System.out.println("User requested " + command[0]);
                 
-                // Preparo le variabili per la conversione dei json delle risposte
+                //TODO Cancellare
                 Gson gson = new Gson();
                 Type type = new TypeToken<List<String>>(){}.getType();
-
-
+                
                 /*
-                 * A seconda del tipo di operazione richiesta dal client vado a controllare che la richiesta
-                 * sia corretta in ogni sua componente prima di inviarla al server
+                 * A seconda del tipo di operazione richiesta dal client controllo che l'input dell'utente sia corretto
+                 * per poi chiamare la relativa funzione dove avviene la comunicazione col server
                  */
 
                 switch (command[0]) {
                 
                     case "register":
                     	
-                    	if(winClient.currentUser != null) {
-                    		System.err.println("ERROR: You are already logged in");
-                        	break;
-                        }
-
                     	if(command.length > 8 || command.length < 4) {
+                    		System.out.print("< ");
                     		System.err.println("ERROR: use register <username> <password> <tag1 tag2... tag5> tag list must be max 5 tags long");
                     		break;
                     	}
-	
-	                        // Creo la lista di tag da inviare al server
-	                        // Tutti i tag vengono convertiti in minuscolo
-	                        // Nel caso di un tag ripetuto viene ignorato e non inserito
-	                        List<String> tagList = new ArrayList<String>();
-	
-	                        for(int i = 3; i < command.length; i++) {
-	                            if(!tagList.contains(command[i].toLowerCase()))
-	                                tagList.add(command[i].toLowerCase());
-	                        }
-	
-	                        // Controllo se la registrazione e' andata a buon fine
-	                        if(serverRegister.registerUser(command[1], command[2], tagList) == 0)
-	                            System.out.println("< User " + command[1] + " has been registred! You can now log in...");
-	                        else System.err.println("ERROR: Username already in use, try logging in or choose another username");
-	                        
+                    	
+                    	winClient.registerUser(command);
+                    	
                         break;
 
                     case "login":
-
+                    	
                         if(command.length != 3) {
+                        	System.out.print("< ");
                             System.err.println("ERROR: correct login <username> <password>");
                             break;
                         }
                         
-                        if(winClient.currentUser != null) {
-                        	System.err.println("ERROR: You are already logged in");
-                        	break;
-                        }
-
-                        WinUtils.send(action, clientSocket);
-
-                        String loginResponse = WinUtils.receive(clientSocket);
-                                            
-                        List<String> followers = gson.fromJson(loginResponse.toString(), type);
-                       
-                        if(followers.get(0).equals("LOGIN-OK")) {
-                            System.out.println("Welcome " + command[1] + " you are now logged in!");
-                            winClient.currentUser = command[1];
-                            
-                            // Se il login e' andato a buon fine recupero dalla risposta la lista dei follower gia' esistenti
-                            followers.remove(0);
-                            winClient.listFollowers = followers;
-                        
-                            winClient.callbackRegister();
-                            winClient.connectMulticast();
-                        } else if(followers.get(0).equals("USER-NOT-FOUND")) {
-                            System.err.println("Username not found, you need to register first!");
-                        } else if(followers.get(0).equals("INCORRECT-PSW")) {
-                            System.err.println("Password is incorrect");
-                        }
+                    	winClient.loginUser(action, command);	
+                    	
                         break;
                         
                     case "logout":
-
-                        // Controllo se l'utente ha gia' effettuato il login
-                        if(winClient.currentUser == null) {
-                            System.err.println("No user logged in, cannot log out");
-                            break;
-                        }
-
-                        // Creo la stringa da inviare al server con "logout <username>"
-
-                        String logout = command[0] + " " + winClient.currentUser;
-
-                        System.out.println(logout);
-
-                        WinUtils.send(logout, clientSocket);
-
-                        String logoutResponse = WinUtils.receive(clientSocket);
-
-                        // Se il logout e' andato a buon fine resetto la sessione
-                        // e mi disconnetto da multicast e callback
-                        if(logoutResponse.equals("LOGOUT-OK")) {
-                            System.out.println(winClient.currentUser + " logged out");
-
-                            try {
-                                server.unregisterForCallback(stub2, winClient.currentUser);
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-
-                            winClient.currentUser = null;
-                            winClient.listFollowers.clear();
-                            winClient.disconnectMulticast();
-
-                        } else throw new InvalidServerResponseException("Invalid logout response");
-
+                    	
+                    	winClient.logoutUser(command);
+                    	
                         break;
+                        
                     case "list":
 
                         if(command.length != 2 || (!(command[1].equals("users")) && !(command[1].equals("followers")) && !(command[1].equals("following")))) {
@@ -304,160 +748,41 @@ public class WinClientMain {
                             break;
                         }
 
-                        if(winClient.currentUser == null) {
-                            System.err.println("User not logged in");
-                            break;
-                        }
-
-                        // Nel caso del comando "list followers" gestisco lato client
-                        // Altrimenti spedisco le informazioni al server
-                        if(command[1].equals("followers")) {
-
-                            // Stampo le informazioni sulla lista dei followers
-
-                            if(winClient.listFollowers.isEmpty()) {
-                            	System.out.println("You have no followers");
-                            	break;
-                            }
-
-                            System.out.println("You have " + winClient.listFollowers.size() + " followers:");
-
-                            for(String user : winClient.listFollowers) {
-                                System.out.println(user);
-                            }
-
-                        } else {
-                            String list = action + " " + winClient.currentUser;
-                            System.out.println(list);
-                            WinUtils.send(list, clientSocket);
-
-                            String listResponse = WinUtils.receive(clientSocket);
-
-                            // converto in lista la risposta                           
-                            List<String> users = gson.fromJson(listResponse.toString(), type);
-
-                            if(command[1].equals("users")) {
-                                if (users.get(0).equals("USER-NOT-FOUND")) {
-                                    System.out.println("No user with common tags found");
-                                } else if (users.get(0).equals("LIST-USERS-OK")) {
-                                    // se non ci sono stati errori stampo il risultato
-                                    users.remove(0);
-                                    System.out.println("We found these users that share your interests:");
-                                    for (String info : users) {
-                                        String[] userTag = info.split("/");
-                                        System.out.println("Username: " + userTag[0]);
-                                        System.out.println("You have these tags in common:");
-                                        for (int i = 1; i < userTag.length; i++) System.out.println(userTag[i]);
-                                    }
-                                }
-                            }
-                            if(command[1].equals("following")) {
-                                if (users.get(0).equals("USER-NOT-FOUND")) {
-                                    System.out.println("You are not following any user");
-                                } else if (users.get(0).equals("LIST-FOLLOWING-OK")) {
-                                    // se non ci sono stati errori stampo il risultato
-                                    users.remove(0);
-                                    System.out.println("You are following these users:");
-                                    for (String info : users) {
-                                        System.out.println("Username: " + info);
-                                    }
-                                }
-                            }
-                        }
+                        if(command[1].equals("followers")) winClient.listFollowers();
+                        else if (command[1].equals("users")) winClient.listUsers(action);
+                        else if(command[1].equals("following")) winClient.listFollowing(action);
+                    
                         break;
+                        
                     case "follow":
 
-                        if(winClient.currentUser == null) {
-                            System.err.println("User not logged in");
+                        if(command.length != 2) {
+                        	System.out.println("ERROR: correct follow <username>");
                             break;
                         }
+                        
+                        winClient.followUser(action);
 
-                        // Creo la stringa da inviare al server con "follow <username da seguire> <username utente corrente>"
-
-                        String follow = action + " " + winClient.currentUser;
-
-                        WinUtils.send(follow, clientSocket);
-
-                        String followResponse = WinUtils.receive(clientSocket);
-
-                        if(followResponse.equals("FOLLOW-OK")) {
-                            System.out.println(winClient.currentUser + " you are now following " + command[1]);
-                        } else if(followResponse.equals("USER-NOT-FOUND")) {
-                            System.err.println("The user you tried to follow does not exist");
-                        } else if(followResponse.equals("CURUSER-NOT-FOUND")) {
-                            System.err.println("Username not found, login or register");
-                        } else if(followResponse.equals("ALREADY-FOLLOWING")) {
-                            System.err.println("You are already following this user");
-                        }
                         break;
+                        
                     case "unfollow":
 
-                        if(winClient.currentUser == null) {
-                            System.err.println("User not logged in");
+                        if(command.length != 2) {
+                        	System.out.println("ERROR: correct unfollow <username>");
                             break;
                         }
+                        
+                        winClient.unfollowUser(action);
 
-                        // Creo la stringa da inviare al server con
-                        // "unfollow <username da non seguire piu'> <username utente corrente>"
-
-                        String unfollow = action + " " + winClient.currentUser;
-
-                        WinUtils.send(unfollow, clientSocket);
-
-                        String unfollowResponse = WinUtils.receive(clientSocket);
-
-                        if(unfollowResponse.equals("UNFOLLOW-OK")) {
-                            System.out.println(winClient.currentUser + " you stopped following " + command[1]);
-                        } else if(unfollowResponse.equals("USER-NOT-FOUND")) {
-                            System.err.println("The user you tried to unfollow does not exist");
-                        } else if(unfollowResponse.equals("CURUSER-NOT-FOUND")) {
-                            System.err.println("Username not found, login or register");
-                        } else if(unfollowResponse.equals("NOT-FOLLOWING")) {
-                            System.err.println("You are not following this user");
-                        }
                         break;
                         
                     case "blog":
                     	
-                        if(winClient.currentUser == null) {
-                            System.err.println("User not logged in");
-                            break;
-                        }
-
-                        String blogMes = action + " " + winClient.currentUser;
-
-                        WinUtils.send(blogMes, clientSocket);
-
-                        String blogResponse = WinUtils.receive(clientSocket);
-                        
-                        // converto in lista la risposta
-                        
-                        List<String> blog = gson.fromJson(blogResponse.toString(), type);
-                        
-                        if (blog.get(0).equals("BLOG-EMPTY")) {
-                            System.out.println("Your blog is still empty, make a new post!");
-                        } else if (blog.get(0).equals("BLOG-OK")) {
-                            // se non ci sono stati errori stampo il risultato
-                            blog.remove(0);
-                            System.out.println("BLOG:");
-                            for (String info : blog) {
-                                String[] blogEntry = info.split("/");
-                                System.out.println("Post ID: " + blogEntry[0]);
-                                System.out.println("Author: " + blogEntry[1]);
-                                System.out.println("Title: " + blogEntry[2]);
-                            }
-                        }
-                        
+                        winClient.viewBlog(command[0]);
                         
                         break;
                         
                     case "post":
-
-                        if(winClient.currentUser == null) {
-                            System.err.println("User not logged in");
-                            break;
-                        }
-
                         //catturo i dati del post
                         String[] elements = action.split("\"");
 
@@ -470,17 +795,8 @@ public class WinClientMain {
                             System.out.println("ERROR: format title must be under 20 characters content under 500");
                             break;
                         }
-
-                        String post = action.concat(winClient.currentUser);
-                        WinUtils.send(post, clientSocket);
-
-                        String postResponse = WinUtils.receive(clientSocket);
-
-                        if(postResponse.equals("POST-OK")) {
-                            System.err.println("You posted!");
-                        } else if(postResponse.equals("USER-NOT-FOUND")) {
-                            System.err.println("error!");
-                        }
+                        
+                    	winClient.createPost(action);
 
                         break;
                         
@@ -490,261 +806,49 @@ public class WinClientMain {
                             System.err.println("ERROR: correct show feed OR show post");
                             break;
                         }
-                        
-                        if(winClient.currentUser == null) {
-                            System.err.println("ERROR: User not logged in");
-                            break;
-                        }
 
                         if(command[1].equals("feed")) {
                         	
-                            String feedMes = action + " " + winClient.currentUser;
-
-                            WinUtils.send(feedMes, clientSocket);
-
-                            String feedResponse = WinUtils.receive(clientSocket);
-                            
-                            // converto in lista la risposta
-                            List<String> feed = gson.fromJson(feedResponse.toString(), type);
-                            
-                            if (feed.get(0).equals("FEED-EMPTY")) {
-                                System.out.println("There are no posts on your feed.");
-                            } else if (feed.get(0).equals("FEED-OK")) {
-                                // se non ci sono stati errori stampo il risultato
-                                feed.remove(0);
-                                System.out.println("FEED:");
-                                for (String info : feed) {
-                                    String[] feedEntry = info.split("/");
-                                    System.out.println("Post ID: " + feedEntry[0]);
-                                    System.out.println("Author: " + feedEntry[1]);
-                                    System.out.println("Title: " + feedEntry[2]);
-                                }
-                            }
-
-                        } else if(command[1].equals("post")) {
+                        	if(command.length != 2) {
+                        		System.err.println("ERROR: correct use -> show feed");
+                        		break;
+                        	}
+                        	
+                        	winClient.showFeed(action);
+                        }
+                        else if(command[1].equals("post")) {
                         	
                         	if(command.length != 3) {
                         		System.err.println("ERROR: correct use -> show post <post id>");
                         		break;
                         	}
                         	
-                        	String postMes = action + " " + winClient.currentUser;
-                        	
-                            WinUtils.send(postMes, clientSocket);
-
-                            String showpostResponse = WinUtils.receive(clientSocket);
-                            
-                            if(showpostResponse.equals("POST-NOT-FOUND")) {
-                            	System.err.println("The post you requested doesn't exist");
-                            } else {
-                            	WinPost curPost = gson.fromJson(showpostResponse.toString(), WinPost.class);
-                            	
-                            	System.out.println("\nPOST:");
-                            	System.out.println("'" + curPost.getPostTitle() + "'");
-                            	System.out.println("'" + curPost.getPostContent() + "'");
-                            	System.out.println("By: " + curPost.getPostAuthor() + " ID:" + curPost.getIdPost().toString());
-                            	System.out.println("Upvotes " + curPost.getUpvoteCount());
-                            	System.out.println(curPost.getComments().size());
-                            	
-                            	if(curPost.getPostAuthor().equals(winClient.currentUser)) {
-                            		System.out.println("\nWant to delete this post? type -> delete <idPost>");
-                            		System.out.println("Otherwise type -> no");
-                            		System.out.print("> ");
-                            		
-                            		String delete = scan.nextLine();
-                            		
-                            		if(delete.equals("no")) break;
-                            		
-                            		
-                            		String[] deleteInfo = delete.split(" ");
-                            		
-                            		if(!delete.contains("delete") && deleteInfo.length != 2) {
-                            			System.err.println("ERROR: delete <idPost>");                   
-                            			break;
-                            		}
-                            		
-                           			String deleteMes = delete + " " + winClient.currentUser;
-                        			                        	                                	
-                                    WinUtils.send(deleteMes, clientSocket);
-
-                                    String deleteResponse = WinUtils.receive(clientSocket);
-                                    
-                                    if(deleteResponse.equals("DELETE-OK")) {
-                                    	System.out.println("> The post was successfully deleted!");
-                                    } else if(deleteResponse.equals("POST-NOT-FOUND")) {
-                                    	System.err.println("The post you tried to delete does not exist");
-                                    }
-                                    
-                            		break;
-                            	}
-                            	
-                            	if(curPost.getFeed()) {
-                            		// Se l'utente ha il post nel suo feed puo' votarlo o commentare
-                            		System.out.println("\nIf you want to add a comment on this post type -> comment <idPost> \"<comment>\"");
-                            		System.out.println("If you want to rate this post type -> rate <idPost> <vote>");
-                            		System.out.println("<vote> can be <+1> or <-1>");
-                            		System.out.println("Otherwise type -> no");
-                            		System.out.print("> ");
-                            		
-                            		String newAction = scan.nextLine();
-                            		
-                            		if(newAction.equals("no")) break;
-                            		
-                            		
-                            		String[] actionInfo = newAction.split(" ");
-                            		
-                            		// Controllo che l'utente abbia inserito l'input corretto
-                            		
-                            		if((!newAction.contains("rate") && !newAction.contains("comment"))) {
-                            			System.err.println("ERROR: comment <idPost> \"<comment>\"");   
-                            			System.err.println("ERROR: rate <idPost> <vote>");
-                            			break;
-                            		}
-                            		
-                            		// Voto
-                            		if(actionInfo[0].equals("rate")) {
-                            			
-                            			if(actionInfo.length != 3) {
-                            				System.err.println("ERROR: rate <idPost> <vote>");
-                            				break;
-                            			}
-                            			
-                            			if(!actionInfo[2].equals("+1") && !actionInfo[2].equals("-1")) {
-                            				System.out.println("<vote> can be <+1> or <-1>");
-                            				break;
-                            			}
-                            			
-                               			String rate = newAction + " " + winClient.currentUser;
-	                                	
-                                        WinUtils.send(rate, clientSocket);
-
-                                        String rateResponse = WinUtils.receive(clientSocket);
-                                        
-                                        if(rateResponse.equals("RATE-OK")) {
-                                        	System.out.println("Your vote was added to the post!");
-                                        } else if(rateResponse.equals("POST-NOT-FOUND")) {
-                                        	System.err.println("The post you tried to rate does not exist");
-                                        } else if(rateResponse.equals("ALREADY-RATED")) {
-                                        	System.err.println("You cannot rate the same post more than once");
-                                        }
-
-                            		}
-                            		
-                            		// Commento
-                            		if(actionInfo[0].equals("comment")) {
-                            			String[] comment = newAction.split("\"");
-                            			if(comment.length != 2) {
-                            				System.err.println("ERROR: comment <idPost> \"<comment>\"");
-                            				break;
-                            			}
-
-                            			String commentMes = newAction + winClient.currentUser;
-	                                	
-                                        WinUtils.send(commentMes, clientSocket);
-
-                                        String commentResponse = WinUtils.receive(clientSocket);
-                                        
-                                        if(commentResponse.equals("COMMENT-OK")) {
-                                        	System.out.println("Your comment was added to the post!");
-                                        } else if(commentResponse.equals("POST-NOT-FOUND")) {
-                                        	System.err.println("The post you tried to rate does not exist");
-                                        }
-                            		}
-                            		
-                            		break;
-                            	}
-                            	
-                            }                        
-                        }
+                        	winClient.showPost(action);                  
+                        } else System.err.println("ERROR: command show " + command[1] + " not recognized");
                         
                         break;
                     
                     case "rewin":
-                    	
-                    	if(winClient.currentUser == null) {
-                            System.err.println("User not logged in");
-                            break;
-                        }
-                        
+                    	                                            
                     	if(command.length != 2) {
                     		System.out.println("ERROR: use -> rewin <idPost>");
                     		break;
-                    	} 
-                    	
-                    	String rewin = action + " " + winClient.currentUser;
-                    	
-                        WinUtils.send(rewin, clientSocket);
-
-                        String rewinResponse = WinUtils.receive(clientSocket);
+                    	}                     	
                         
-                        if(rewinResponse.endsWith("REWIN-OK")) {
-                        	System.out.println("< You rewinned the post!");
-                        } else System.out.println(rewinResponse);
+                    	winClient.rewinPost(action);
                     	
                     	break;
-                    case "wallet":
                     	
-                        if(winClient.currentUser == null) {
-                            System.err.println("User not logged in");
-                            break;
-                        }
-                        
+                    case "wallet":
+                    
                     	if(command.length == 1) {
-                    		
-                    		String wallet = action + " " + winClient.currentUser;
-                        	
-                            WinUtils.send(wallet, clientSocket);
-
-                            String walletResponse = WinUtils.receive(clientSocket);
-                            
-                            JsonObject walletJson = new Gson().fromJson(walletResponse, JsonObject.class);
-                                                        
-                            if(walletJson.get("result").getAsInt() == 0) {
-                            	System.out.println("< " + walletJson.get("result-msg").getAsString());
-                            	
-                            	List<String> transactionList = gson.fromJson(walletJson.get("transaction-list").getAsString(), type);
-                            	
-                            	for(String transaction : transactionList) {
-                            		
-                            		String[] values = transaction.split("/");
-                            	
-                            		System.out.printf("%.2f\n", Double.parseDouble(values[0]));
-                            		System.out.println(values[1]);
-                            	}
-                            	System.out.println("< TOTAL " + walletJson.get("wallet-tot").getAsDouble());
-                            	
-                         
-                            } else System.out.println(walletJson.get("result-msg").getAsString());
+                    		winClient.getWallet(action);  
                             break;
                             
                     	} else if(command[1].equals("btc")) {
-                    		System.out.println("wallet btc");
-                    		
-                    		String walletbtc = action + " " + winClient.currentUser;
-                        	
-                            WinUtils.send(walletbtc, clientSocket);
-
-                            String walletbtcResponse = WinUtils.receive(clientSocket);
-                            
-                            JsonObject walletbtcJson = new Gson().fromJson(walletbtcResponse, JsonObject.class);
-                                                        
-                            if(walletbtcJson.get("result").getAsInt() == 0) {
-                            	System.out.println("< " + walletbtcJson.get("result-msg").getAsString());
-                            	
-                            	List<String> transactionList = gson.fromJson(walletbtcJson.get("transaction-list").getAsString(), type);
-                            	
-                            	for(String transaction : transactionList) {
-                            		
-                            		String[] values = transaction.split("/");
-                            	
-                            		System.out.printf("%.2f\n", Double.parseDouble(values[0]));
-                            		System.out.println(values[1]);
-                            	}
-                            	System.out.println("< TOTAL " + walletbtcJson.get("wallet-tot").getAsDouble());
-                            	
-                         
-                            } else System.out.println(walletbtcJson.get("result-msg").getAsString());
+                    		winClient.getWalletBitcoin(action);
                             break;
+                            
                     	} else {
                     		System.err.println("ERROR:");
                     		System.err.println("correct use -> 'wallet' to see your wallet");
@@ -752,19 +856,41 @@ public class WinClientMain {
                     		break;
                     	}
                     	                    	
-                    case "delete":                    	
-                    	System.err.println("ERROR: to delete a post you must first do -> show post <idPost>");
-                    	System.err.println("You can delete a post only if you are the author");                  	                        
+                    case "delete":
+                    	if(command.length != 2) {
+                			System.err.println("ERROR: delete <idPost>");                   
+                			break;
+                		}
+                    	
+                    	winClient.deletePost(action);
+                                     	                        
                         break;
                         
                     case "comment":
-                    	System.err.println("ERROR: to comment on a post you must first do -> show post <idPost>");
-                    	System.err.println("You can comment on a post only if it is in your feed");                  	                        
+                    	
+                    	String[] comment = action.split("\"");
+                		if(comment.length != 2) {
+                			System.err.println("ERROR: comment <idPost> \"<comment>\"");
+                			break;
+                		}
+                		
+                		winClient.addComment(action); 
+                		
                         break;
                         
                     case "rate":
-                    	System.err.println("ERROR: to rate a post you must first do -> show post <idPost>");
-                    	System.err.println("You can rate a post only if it is in your feed");                  	                        
+                    	if(command.length != 3) {
+                			System.err.println("ERROR: rate <idPost> <vote>");
+                			break;
+                		}
+                		
+                		if(!command[2].equals("+1") && !command[2].equals("-1")) {
+                			System.out.println("<vote> can be <+1> or <-1>");
+                			break;
+                		}
+                		
+                		winClient.ratePost(action);
+                                    	                        
                         break;
                         
                     case "help":
@@ -776,6 +902,7 @@ public class WinClientMain {
                 }
                 
                 System.out.print("> ");
+                
             }
             System.out.println("close");
             scan.close();

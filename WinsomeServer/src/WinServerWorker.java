@@ -5,6 +5,9 @@ import java.rmi.RemoteException;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 public class WinServerWorker implements Runnable {
 
     private String operation;
@@ -63,7 +66,7 @@ public class WinServerWorker implements Runnable {
                 // ATTENZIONE non funziona
 
                 // Se l'utente ne ha seguito un'altro
-                if(keyWorker.attachment().equals("FOLLOW-OK") && serverStorage.getOnlineUsers().containsKey(args[1])) {
+                if((new Gson().fromJson((String) keyWorker.attachment(), JsonObject.class).get("result").getAsInt() == 0) && serverStorage.getOnlineUsers().containsKey(args[1])) {
                     // notifico quell'utente tramite RMI, solo se è online
                     try {
                         followersRMI.follow(args[1], args[2]);
@@ -81,7 +84,7 @@ public class WinServerWorker implements Runnable {
                 serverStorage.unfollowUser(args[1], args[2], keyWorker);
 
                 // Se l'utente ne ha seguito un'altro
-                if(keyWorker.attachment().equals("UNFOLLOW-OK") && serverStorage.getOnlineUsers().containsKey(args[1])) {
+                if((new Gson().fromJson((String) keyWorker.attachment(), JsonObject.class).get("result").getAsInt() == 0) && serverStorage.getOnlineUsers().containsKey(args[1])) {
                     // notifico quell'utente tramite RMI
                     try {
                         followersRMI.unfollow(args[1], args[2]);
@@ -137,7 +140,9 @@ public class WinServerWorker implements Runnable {
             	
             	System.out.println("Rewin post " + args[1] + " for " + args[2]);
             	
+            	//TODO gestire caso non ID
             	UUID rewinpostID = UUID.fromString(args[1]);
+            	
             	serverStorage.rewinPost(args[2], rewinpostID, keyWorker);
             	
             	break;
