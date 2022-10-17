@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class WinUser {
 
-    private UUID idUser;
+    //TODO private UUID idUser;
     private String username;
     private String password;
     private List<String> tagList;
@@ -18,7 +18,7 @@ public class WinUser {
     private double walletTot;
 
     public WinUser(String username, String password, List<String> tagList) {
-        this.idUser = UUID.randomUUID(); //trovare un modo per id univoco
+        //this.idUser = UUID.randomUUID(); //trovare un modo per id univoco
         this.username = username;
         this.password = password;
         this.tagList = tagList;

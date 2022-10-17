@@ -505,13 +505,13 @@ public class WinClientMain {
         	System.out.println("Upvotes " + postJson.get("upvote").getAsInt());
         	System.out.println("Dowvotes " + postJson.get("downvote").getAsInt());
         	
-        	/*
+        
         	List<String> comments = gson.fromJson(postJson.get("comments").getAsString(), type);
         	
         	for(String comment : comments) {
         		System.out.println(comment);
         	}
-*/
+        	
         } else {
         	System.err.println(postJson.get("result-msg").getAsString());
         } 
@@ -697,12 +697,6 @@ public class WinClientMain {
                 String[] command = action.split(" ");
                 
                 if(command.length == 0) continue;
-                
-                System.out.println("User requested " + command[0]);
-                
-                //TODO Cancellare
-                Gson gson = new Gson();
-                Type type = new TypeToken<List<String>>(){}.getType();
                 
                 /*
                  * A seconda del tipo di operazione richiesta dal client controllo che l'input dell'utente sia corretto

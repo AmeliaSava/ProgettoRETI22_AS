@@ -1,4 +1,36 @@
 {
+  "9ed0136d-4c1f-476a-8bb5-e43188099017": {
+    "idPost": "9ed0136d-4c1f-476a-8bb5-e43188099017",
+    "postAuthor": "brodo",
+    "postContent": "brodo",
+    "postTitle": "brodo",
+    "feed": false,
+    "rewins": [],
+    "comments": [],
+    "ratings": [],
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  "38bede6d-89d9-4782-bcdd-a6bea16f7082": {
+    "idPost": "38bede6d-89d9-4782-bcdd-a6bea16f7082",
+    "postAuthor": "seagull",
+    "postContent": "AAAAAAAA",
+    "postTitle": "AAAAAAAA",
+    "feed": false,
+    "rewins": [
+      "flamingo"
+    ],
+    "comments": [],
+    "ratings": [
+      {
+        "rate": 1,
+        "timestamp": "Oct 17, 2022, 9:56:29 PM",
+        "userrating": "flamingo"
+      }
+    ],
+    "upvoteCount": 1,
+    "downvoteCount": 0
+  },
   "b8887646-156f-487c-a638-9c030b186c83": {
     "idPost": "b8887646-156f-487c-a638-9c030b186c83",
     "postAuthor": "honker",
