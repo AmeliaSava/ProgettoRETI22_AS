@@ -19,16 +19,13 @@ import java.util.*;
 public class WinClientMain {
 
     private static int TCPserverport;
-    private static int UDPserverport;
     private static int RMIregisterport;
     private static int RMIfollowersport;
     private static String hostAddress;
-    private static String multicastAddress;
 
     private static SocketChannel clientSocket;
 
     private static RegistrationService serverRegister;
-    private static Remote RemoteRegister;
 
     private static NotificationServiceServer server;
     private static NotificationServiceClient stub2;
@@ -45,13 +42,13 @@ public class WinClientMain {
 
         File file = new File(".\\src\\files\\ClientConfigFile.txt");
 
-        Scanner sc = null;
+        Scanner sc;
         try {
             sc = new Scanner(file);
         } catch (FileNotFoundException e) {
-
             System.err.println("ERROR: configuration file not found");
             e.printStackTrace();
+            return;
         }
 
         while (sc.hasNextLine()) {
@@ -63,9 +60,6 @@ public class WinClientMain {
                         case "TCPSERVERPORT":
                             TCPserverport = Integer.parseInt(st.nextToken());
                             break;
-                        case "UDPSERVERPORT":
-                            UDPserverport = Integer.parseInt(st.nextToken());
-                            break;
                         case "RMIPORTREGISTER":
                             RMIregisterport = Integer.parseInt(st.nextToken());
                             break;
@@ -74,9 +68,6 @@ public class WinClientMain {
                             break;
                         case "SERVERNAME":
                             hostAddress = st.nextToken();
-                            break;
-                        case "MULTICAST":
-                            multicastAddress = st.nextToken();
                             break;
                     }
 
@@ -87,16 +78,16 @@ public class WinClientMain {
     }
 
     private void connect() {
-        //mi connetto al server
+
         SocketAddress address = new InetSocketAddress(hostAddress, TCPserverport);
 
         try {
-            //ATTENZIONE timeout
+            //TODO timeout
             clientSocket = SocketChannel.open(address);
             //aspetto che la connessione sia stabilita
             while(!clientSocket.finishConnect()) {}
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+            System.err.println("ERROR: connection: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -104,8 +95,8 @@ public class WinClientMain {
     private void registrationRegister() {
         try {
             Registry registry1 = LocateRegistry.getRegistry(RMIregisterport);
-            RemoteRegister = registry1.lookup("REGISTER-SERVER");
-            serverRegister = (RegistrationService) RemoteRegister;
+            Remote remoteRegister = registry1.lookup("REGISTER-SERVER");
+            serverRegister = (RegistrationService) remoteRegister;
         } catch (Exception e) {
             System.err.println("ERROR: invoking object method " + e.toString() + e.getMessage());
             e.printStackTrace();
@@ -113,7 +104,6 @@ public class WinClientMain {
     }
 
     private void callbackRegister() {
-
         try {
             Registry registry2 = LocateRegistry.getRegistry(RMIfollowersport);
             server = (NotificationServiceServer) registry2.lookup("FOLLOWERS-SERVER");
@@ -127,8 +117,6 @@ public class WinClientMain {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
-        return;
     }
     
     private void callbackUnregister() {
@@ -143,28 +131,26 @@ public class WinClientMain {
     /*
      * Avvia un thread che si mettera' in attesa degli aggiornamenti sul wallet
      */
-    private void connectMulticast() {
-
+    private void connectMulticast(String multicastAddress, int UDPserverport) {
         WalletUpdate = new WinClientWallUp(UDPserverport, multicastAddress);
         WallUp = new Thread(WalletUpdate);
         WallUp.start();
-        return;
     }
 
     /*
      * Ferma il thread che attende la notifica sul calcolo delle ricompense
      */
     private void disconnectMulticast() {
-
         WalletUpdate.closeMulticast();
         WallUp.interrupt();
-        return;
     }
 
+    /*
+     * Controlla che non ci sia un'utente gia' online e poi prepara la lista dei tag
+     */
     private void registerUser(String[] command) throws RemoteException {
     	
     	if(currentUser != null) {
-    		System.out.print("< ");
     		System.err.println("ERROR: You are already logged in");
         	return;
         }
@@ -185,19 +171,20 @@ public class WinClientMain {
         else System.err.println("ERROR: Username already in use, try logging in or choose another username");
     }
     
-    private void loginUser(String action, String[] command) throws IOException {
+    private void loginUser(String loginUser, String loginPassword) throws IOException {
     	        
         if(currentUser != null) {
-        	System.out.print("< ");
         	System.err.println("ERROR: You are already logged in");
         	return;
         }
 
-        WinUtils.send(action, clientSocket);
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "login");
+        message.addProperty("user", loginUser);
+        message.addProperty("password", loginPassword);
+        WinUtils.send(message.toString(), clientSocket);
         String loginResponse = WinUtils.receive(clientSocket);
-        
-        Gson gson = new Gson();
-        Type type = new TypeToken<List<String>>(){}.getType();
+
         JsonObject loginJson = new Gson().fromJson(loginResponse, JsonObject.class);                                       
        
        // Il login e' andato a buon fine
@@ -205,40 +192,38 @@ public class WinClientMain {
         	System.out.println("< " + loginJson.get("result-msg").getAsString());
             
         	// Setto l'utente della sessione corrente
-            currentUser = command[1];
+            currentUser = loginUser;
             
             // Recupero dalla risposta la lista dei follower gia' esistenti
-            listFollowers = gson.fromJson(loginJson.get("followers-list").getAsString(), type);
+            listFollowers = new Gson().fromJson(loginJson.get("followers-list").getAsString(), new TypeToken<Vector<String>>(){}.getType());
         
             // Registro l'utente corrent per la callback sulla lista dei followers
             callbackRegister();
             // Mi connetto al gruppo di multicast
-            connectMulticast();
+            connectMulticast(loginJson.get("multicast").getAsString(), loginJson.get("UDPport").getAsInt());
             
         } else {
-        	System.out.print("< ");
         	System.err.println(loginJson.get("result-msg").getAsString());
         }
     }
     
-    private void logoutUser(String[] command) throws IOException {
-    	
+    private void logoutUser() throws IOException {
+
         // Nessun utente online
         if(currentUser == null) {
-        	System.out.print("< ");
             System.err.println("ERROR: No user logged in, cannot log out");
             return;
         }
 
-        // Creo la stringa da inviare al server con "logout <username>"
-        String logout = command[0] + " " + currentUser;
-        WinUtils.send(logout, clientSocket);
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "logout");
+        message.addProperty("user", currentUser);
+        WinUtils.send(message.toString(), clientSocket);
         String logoutResponse = WinUtils.receive(clientSocket);
         
         JsonObject logoutJson = new Gson().fromJson(logoutResponse, JsonObject.class);                     
 
-        // Se il logout e' andato a buon fine resetto la sessione
-        // e mi disconnetto da multicast e callback
+        // Se il logout e' andato a buon fine resetto la sessione e mi disconnetto da multicast e callback
         if(logoutJson.get("result").getAsInt() == 0) {
         	System.out.println("< " + logoutJson.get("result-msg").getAsString());
             //System.out.println(winClient.currentUser + " logged out");
@@ -255,7 +240,7 @@ public class WinClientMain {
         }
     }
     
-    private void listUsers(String action) throws IOException {
+    private void listUsers() throws IOException {
     	
         // Nessun utente online
         if(currentUser == null) {
@@ -263,9 +248,11 @@ public class WinClientMain {
             System.err.println("ERROR: No user logged in");
             return;
         }
-                
-    	String list = action + " " + currentUser;
-        WinUtils.send(list, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "list users");
+        message.addProperty("user", currentUser);
+        WinUtils.send(message.toString(), clientSocket);
         String listResponse = WinUtils.receive(clientSocket);
         
         Gson gson = new Gson();
@@ -316,15 +303,17 @@ public class WinClientMain {
         }
     }
     
-    private void listFollowing(String action) throws IOException {
+    private void listFollowing() throws IOException {
     	     
         if(currentUser == null) {
             System.err.println("ERROR: No user logged in");
             return;
         }
-                               
-    	String list = action + " " + currentUser;
-        WinUtils.send(list, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "list following");
+        message.addProperty("user", currentUser);
+        WinUtils.send(message.toString(), clientSocket);
         String listResponse = WinUtils.receive(clientSocket);
 
         Gson gson = new Gson();
@@ -348,7 +337,7 @@ public class WinClientMain {
         }
     }
     
-    private void followUser(String action) throws IOException {
+    private void followUser(String userToFollow) throws IOException {
     	
     	// Nessun utente online
     	if(currentUser == null) {
@@ -356,9 +345,11 @@ public class WinClientMain {
             return;
         }
 
-        // Creo la stringa da inviare al server con "follow <username da seguire> <username utente corrente>"
-        String follow = action + " " + currentUser;
-        WinUtils.send(follow, clientSocket);
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "follow");
+        message.addProperty("user", currentUser);
+        message.addProperty("user-to-follow", userToFollow);
+        WinUtils.send(message.toString(), clientSocket);
         String followResponse = WinUtils.receive(clientSocket);
         
         JsonObject followJson = new Gson().fromJson(followResponse, JsonObject.class);
@@ -371,18 +362,18 @@ public class WinClientMain {
         }  
     }
     
-    private void unfollowUser(String action) throws IOException {
+    private void unfollowUser(String userToUnfollow) throws IOException {
     	
         if(currentUser == null) {
         	System.err.println("ERROR: No user logged in");
             return;
         }
 
-        // Creo la stringa da inviare al server con
-        // "unfollow <username da non seguire piu'> <username utente corrente>"
-
-        String unfollow = action + " " + currentUser;
-        WinUtils.send(unfollow, clientSocket);
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "unfollow");
+        message.addProperty("user", currentUser);
+        message.addProperty("user-to-unfollow", userToUnfollow);
+        WinUtils.send(message.toString(), clientSocket);
         String unfollowResponse = WinUtils.receive(clientSocket);
         
         JsonObject unfollowJson = new Gson().fromJson(unfollowResponse, JsonObject.class);
@@ -395,15 +386,17 @@ public class WinClientMain {
         }
     }
     
-    private void viewBlog(String action) throws IOException {
+    private void viewBlog() throws IOException {
         
     	if(currentUser == null) {
     		System.err.println("ERROR: No user logged in");
             return;
         }
 
-        String blogMes = action + " " + currentUser;
-        WinUtils.send(blogMes, clientSocket);
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "blog");
+        message.addProperty("user", currentUser);
+        WinUtils.send(message.toString(), clientSocket);
         String blogResponse = WinUtils.receive(clientSocket);
         
         Gson gson = new Gson();
@@ -429,15 +422,19 @@ public class WinClientMain {
         }       
     }
     
-    private void createPost(String action) throws IOException {
+    private void createPost(String title, String text) throws IOException {
     	
       	 if(currentUser == null) {
              System.err.println("ERROR: No user logged in");
              return;
          }
 
-        String post = action.concat(currentUser);
-        WinUtils.send(post, clientSocket);
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "post");
+        message.addProperty("user", currentUser);
+        message.addProperty("title", title);
+        message.addProperty("content", text);
+        WinUtils.send(message.toString(), clientSocket);
         String postResponse = WinUtils.receive(clientSocket);
         
         JsonObject postJson = new Gson().fromJson(postResponse, JsonObject.class);
@@ -449,15 +446,17 @@ public class WinClientMain {
         }
     }
     
-    private void showFeed(String action) throws IOException {
+    private void showFeed() throws IOException {
     	
      	if(currentUser == null) {
             System.err.println("ERROR: User not logged in");
             return;
         }
-    	
-        String feedMes = action + " " + currentUser;
-        WinUtils.send(feedMes, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "show feed");
+        message.addProperty("user", currentUser);
+        WinUtils.send(message.toString(), clientSocket);
         String feedResponse = WinUtils.receive(clientSocket);
         
         Gson gson = new Gson();
@@ -482,15 +481,18 @@ public class WinClientMain {
         } 
     }
     
-    private void showPost(String action) throws IOException {
+    private void showPost(String postID) throws IOException {
     	
     	if(currentUser == null) {
             System.err.println("ERROR: User not logged in");
             return;
         }
-    	
-    	String postMes = action + " " + currentUser;   
-        WinUtils.send(postMes, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "show post");
+        message.addProperty("user", currentUser);
+        message.addProperty("post-id", postID);
+        WinUtils.send(message.toString(), clientSocket);
         String showpostResponse = WinUtils.receive(clientSocket);
         
         Gson gson = new Gson();
@@ -517,16 +519,19 @@ public class WinClientMain {
         } 
     }
     
-    private void deletePost(String action) throws IOException {
+    private void deletePost(String postID) throws IOException {
    		
 
     	if(currentUser == null) {
             System.err.println("ERROR: User not logged in");
             return;
         }
-		
-		String deleteMes = action + " " + currentUser;		                        	                                	
-        WinUtils.send(deleteMes, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "delete");
+        message.addProperty("user", currentUser);
+        message.addProperty("post-id", postID);
+        WinUtils.send(message.toString(), clientSocket);
         String deleteResponse = WinUtils.receive(clientSocket);
         
         JsonObject deleteJson = new Gson().fromJson(deleteResponse, JsonObject.class);
@@ -539,15 +544,18 @@ public class WinClientMain {
         }
     }
     
-    private void rewinPost(String action) throws IOException {
+    private void rewinPost(String postID) throws IOException {
     	
     	if(currentUser == null) {
     		System.err.println("ERROR: User not logged in");
             return;
         }
-    	
-    	String rewin = action + " " + currentUser;
-        WinUtils.send(rewin, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "rewin");
+        message.addProperty("user", currentUser);
+        message.addProperty("post-id", postID);
+        WinUtils.send(message.toString(), clientSocket);
         String rewinResponse = WinUtils.receive(clientSocket);
         
         JsonObject rewinJson = new Gson().fromJson(rewinResponse, JsonObject.class);
@@ -559,15 +567,19 @@ public class WinClientMain {
         }
     }
     
-    private void ratePost(String action) throws IOException {
+    private void ratePost(String postID, String rate) throws IOException {
  		
     	if(currentUser == null) {
     		System.err.println("ERROR: User not logged in");
             return;
         }
-    	
-    	String rate = action + " " + currentUser;    	
-        WinUtils.send(rate, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "rate");
+        message.addProperty("user", currentUser);
+        message.addProperty("post-id", postID);
+        message.addProperty("rate", rate);
+        WinUtils.send(message.toString(), clientSocket);
         String rateResponse = WinUtils.receive(clientSocket);
         
         JsonObject rateJson = new Gson().fromJson(rateResponse, JsonObject.class);
@@ -579,15 +591,19 @@ public class WinClientMain {
         }
     }
     
-    private void addComment(String action) throws IOException {
+    private void addComment(String postID, String comment) throws IOException {
 		
     	if(currentUser == null) {
     		System.err.println("ERROR: User not logged in");
             return;
         }
-    	
-		String commentMes = action + currentUser;    	
-        WinUtils.send(commentMes, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "delete");
+        message.addProperty("user", currentUser);
+        message.addProperty("post-id", postID);
+        message.addProperty("comment", comment);
+        WinUtils.send(message.toString(), clientSocket);
         String commentResponse = WinUtils.receive(clientSocket);
         
         JsonObject commentJson = new Gson().fromJson(commentResponse, JsonObject.class);
@@ -599,15 +615,17 @@ public class WinClientMain {
         }
     }
     
-    private void getWallet(String action) throws IOException {
+    private void getWallet() throws IOException {
     	
        	if(currentUser == null) {
        		System.err.println("ERROR: No user logged in");
         	return;
         }
-		  
-		String wallet = action + " " + currentUser;
-	  	WinUtils.send(wallet, clientSocket);
+
+        JsonObject message = new JsonObject();
+        message.addProperty("operation", "wallet");
+        message.addProperty("user", currentUser);
+        WinUtils.send(message.toString(), clientSocket);
 	  	String walletResponse = WinUtils.receive(clientSocket);
 
 
@@ -633,17 +651,18 @@ public class WinClientMain {
 	      } else System.out.println(walletJson.get("result-msg").getAsString());
     }
     
-    private void getWalletBitcoin(String action) throws IOException {
+    private void getWalletBitcoin() throws IOException {
     	
   	  if(currentUser == null) {
   		  System.err.println("ERROR: No user logged in");
           return;
       }
-		
-  	  String walletbtc = action + " " + currentUser;
-  	  WinUtils.send(walletbtc, clientSocket);
+
+  	  JsonObject message = new JsonObject();
+  	  message.addProperty("operation", "wallet btc");
+  	  message.addProperty("user", currentUser);
+  	  WinUtils.send(message.toString(), clientSocket);
   	  String walletbtcResponse = WinUtils.receive(clientSocket);
-        
 
       Gson gson = new Gson();
       Type type = new TypeToken<List<String>>(){}.getType();
@@ -714,27 +733,24 @@ public class WinClientMain {
                     	}
                     	
                     	winClient.registerUser(command);
-                    	
                         break;
 
                     case "login":
-                    	
+
                         if(command.length != 3) {
                         	System.out.print("< ");
                             System.err.println("ERROR: correct login <username> <password>");
                             break;
                         }
                         
-                    	winClient.loginUser(action, command);	
-                    	
+                    	winClient.loginUser(command[1], command[2]);
                         break;
                         
                     case "logout":
-                    	
-                    	winClient.logoutUser(command);
-                    	
+
+                    	winClient.logoutUser();
                         break;
-                        
+
                     case "list":
 
                         if(command.length != 2 || (!(command[1].equals("users")) && !(command[1].equals("followers")) && !(command[1].equals("following")))) {
@@ -743,9 +759,8 @@ public class WinClientMain {
                         }
 
                         if(command[1].equals("followers")) winClient.listFollowers();
-                        else if (command[1].equals("users")) winClient.listUsers(action);
-                        else if(command[1].equals("following")) winClient.listFollowing(action);
-                    
+                        else if (command[1].equals("users")) winClient.listUsers();
+                        else winClient.listFollowing();
                         break;
                         
                     case "follow":
@@ -755,8 +770,7 @@ public class WinClientMain {
                             break;
                         }
                         
-                        winClient.followUser(action);
-
+                        winClient.followUser(command[1]);
                         break;
                         
                     case "unfollow":
@@ -766,14 +780,12 @@ public class WinClientMain {
                             break;
                         }
                         
-                        winClient.unfollowUser(action);
-
+                        winClient.unfollowUser(command[1]);
                         break;
                         
                     case "blog":
                     	
-                        winClient.viewBlog(command[0]);
-                        
+                        winClient.viewBlog();
                         break;
                         
                     case "post":
@@ -790,7 +802,7 @@ public class WinClientMain {
                             break;
                         }
                         
-                    	winClient.createPost(action);
+                    	winClient.createPost(elements[1], elements[3]);
 
                         break;
                         
@@ -802,51 +814,43 @@ public class WinClientMain {
                         }
 
                         if(command[1].equals("feed")) {
-                        	
                         	if(command.length != 2) {
                         		System.err.println("ERROR: correct use -> show feed");
                         		break;
                         	}
-                        	
-                        	winClient.showFeed(action);
+                        	winClient.showFeed();
                         }
-                        else if(command[1].equals("post")) {
-                        	
+                        else {
                         	if(command.length != 3) {
-                        		System.err.println("ERROR: correct use -> show post <post id>");
+                        		System.err.println("ERROR: type -> show post <post id>");
                         		break;
                         	}
-                        	
-                        	winClient.showPost(action);                  
-                        } else System.err.println("ERROR: command show " + command[1] + " not recognized");
+                        	winClient.showPost(command[2]);
+                        }
                         
                         break;
                     
                     case "rewin":
                     	                                            
                     	if(command.length != 2) {
-                    		System.out.println("ERROR: use -> rewin <idPost>");
+                    		System.out.println("ERROR: type -> rewin <idPost>");
                     		break;
-                    	}                     	
-                        
-                    	winClient.rewinPost(action);
-                    	
+                    	}
+                    	winClient.rewinPost(command[1]);
                     	break;
                     	
                     case "wallet":
-                    
                     	if(command.length == 1) {
-                    		winClient.getWallet(action);  
+                    		winClient.getWallet();
                             break;
-                            
                     	} else if(command[1].equals("btc")) {
-                    		winClient.getWalletBitcoin(action);
+                    		winClient.getWalletBitcoin();
                             break;
-                            
                     	} else {
                     		System.err.println("ERROR:");
-                    		System.err.println("correct use -> 'wallet' to see your wallet");
-                    		System.err.println("'wallet btc' to see your wallet in bitcoin");
+                    		System.err.println("correct use ->");
+                            System.err.println("type 'wallet' to see your wallet");
+                    		System.err.println("type 'wallet btc' to see your wallet in bitcoin");
                     		break;
                     	}
                     	                    	
@@ -855,21 +859,16 @@ public class WinClientMain {
                 			System.err.println("ERROR: delete <idPost>");                   
                 			break;
                 		}
-                    	
-                    	winClient.deletePost(action);
-                                     	                        
+                    	winClient.deletePost(command[1]);
                         break;
                         
                     case "comment":
-                    	
                     	String[] comment = action.split("\"");
                 		if(comment.length != 2) {
                 			System.err.println("ERROR: comment <idPost> \"<comment>\"");
                 			break;
                 		}
-                		
-                		winClient.addComment(action); 
-                		
+                		winClient.addComment(command[1], comment[1]);
                         break;
                         
                     case "rate":
@@ -877,14 +876,11 @@ public class WinClientMain {
                 			System.err.println("ERROR: rate <idPost> <vote>");
                 			break;
                 		}
-                		
                 		if(!command[2].equals("+1") && !command[2].equals("-1")) {
                 			System.out.println("<vote> can be <+1> or <-1>");
                 			break;
                 		}
-                		
-                		winClient.ratePost(action);
-                                    	                        
+                		winClient.ratePost(command[1], command[2]);
                         break;
                         
                     case "help":
@@ -892,21 +888,17 @@ public class WinClientMain {
                     	break;
 				default:
                         System.out.println("Command " + command[0] + " not recognized");
+                        System.out.println("If you need help type -> help");
                         break;
                 }
-                
                 System.out.print("> ");
-                
             }
-            System.out.println("close");
+            System.out.println("Closing session...");
             scan.close();
-            
         } catch (IOException e1) {
             System.err.println("ERROR: problem communicating with server: " + e1.getMessage());
             e1.printStackTrace();
         }
-
         System.exit(0);
     }
-
 }

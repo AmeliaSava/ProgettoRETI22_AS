@@ -1,38 +1,37 @@
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class WinPost {
 
-    private UUID idPost;
-    private String postAuthor;
-    private String postContent;
-    private String postTitle;
-    
-    private boolean feed;
-    private List<String> rewins;
+    private final UUID idPost;
+    private final String postAuthor;
+    private final String postContent;
+    private final String postTitle;
 
-    private List<WinComment> comments;
-    private List<WinRate> ratings;
+    private Vector<String> rewins;
+
+    private Vector<WinComment> comments;
+    private Vector<WinRate> ratings;
     
     private int upvoteCount;
     private int downvoteCount;
+
+    private int Niter;
 
     public WinPost(String postAuthor, String postTitle, String postContent){
         this.idPost = UUID.randomUUID();
         this.postAuthor = postAuthor;
         this.postContent = postContent;
         this.postTitle = postTitle;
+
+        this.rewins = new Vector<String>();
         
-        this.feed = false;
-        this.rewins = new ArrayList<String>();
-        
-        this.comments = new ArrayList<WinComment>();
-        this.ratings = new ArrayList<WinRate>();
+        this.comments = new Vector<WinComment>();
+        this.ratings = new Vector<WinRate>();
         
         this.upvoteCount = 0;
         this.downvoteCount = 0;
+
+        this.Niter = 0;
     }
 
     public UUID getIdPost() { return idPost; }
@@ -42,32 +41,30 @@ public class WinPost {
     public String getPostContent() { return  postContent; }
 
     public String getPostAuthor() { return postAuthor; }
-    
-    public boolean getFeed() { return feed; }
-    
+
     public int getUpvoteCount() { return upvoteCount; }
     
     public int getDownvoteCount() { return downvoteCount; }
-    
-    public List<WinRate> getRatings() { return ratings; }
-    
-    public List<WinComment> getComments() { return comments; }
-    
-    public List<String> getRewins() { return rewins; }
-    
-    public void isFeed() {
-    	feed = true;
+
+    public int getNiter() {
+        return Niter;
     }
+
+    public Vector<WinRate> getRatings() { return ratings; }
     
-    public void resetFeed() {
-    	feed = false;
-    }
+    public Vector<WinComment> getComments() { return comments; }
     
-    public void addRewin(String user) {
-    	rewins.add(user);
+    public Vector<String> getRewins() { return rewins; }
+
+    public int addRewin(String user) {
+    	if (rewins.contains(user)) return -1;
+    	else {
+    	    rewins.add(user);
+    	    return 0;
+        }
     }
       
-    public int addRate(String uservoting, int vote) {
+    public synchronized int addRate(String uservoting, int vote) {
     	  
     	WinRate curRate = new WinRate(uservoting, vote);
     	
@@ -95,7 +92,7 @@ public class WinPost {
     	return 0;
     }
     
-    public void addComment(String commentAuthor, String comment) {
+    public synchronized void addComment(String commentAuthor, String comment) {
     	
     	WinComment curComment = new WinComment(commentAuthor, comment);
     	
@@ -103,5 +100,7 @@ public class WinPost {
     	
     	System.out.println("Comment added by " + curComment.getAuthor() + " on " + curComment.getTimestamp() + ": " + curComment.getComment());
     }
+
+    public void iterInc() { Niter++;}
     
 }

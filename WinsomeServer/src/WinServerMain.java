@@ -1,12 +1,11 @@
+import com.google.gson.JsonObject;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -30,8 +29,10 @@ public class WinServerMain {
     private static String multicastAddress;
     private static WinServerStorage serverStorage;
 
+    private static ConcurrentHashMap<SelectableChannel, String> onlineUsers;
+
     // Informazioni per la persistenza nel file system
-    private WinServerStorageKeeper serverStorageKeeper;
+    private WinServerStoragePersistenceManager serverStorageKeeper;
     private Thread keeperThread;
     private int saveTime;
 
@@ -99,9 +100,7 @@ public class WinServerMain {
 
     private void startThreadPool() {
         //TODO rejection handler
-        //la lista?
-        //threadfactory?
-        threadPool = new ThreadPoolExecutor(0,100, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10));
+        threadPool = new ThreadPoolExecutor(0,100, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(100));
         System.out.println("Threadpool started");
     }
 
@@ -155,7 +154,7 @@ public class WinServerMain {
 
     public void startStorageKeeper() {
 
-        serverStorageKeeper = new WinServerStorageKeeper(serverStorage, saveTime);
+        serverStorageKeeper = new WinServerStoragePersistenceManager(serverStorage, saveTime);
         keeperThread = new Thread(serverStorageKeeper);
         keeperThread.start();
     }
@@ -226,9 +225,7 @@ public class WinServerMain {
 
                         String operation = WinUtils.receive(clientRead);
 
-                        System.out.println(operation);
-
-                        threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI));
+                        threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI, multicastAddress, UDPport));
 
                     }
                     else if (key.isWritable() && key.isValid()) {
@@ -236,14 +233,21 @@ public class WinServerMain {
                         //scrittura disponibile
                         SocketChannel client = (SocketChannel) key.channel();
 
+                        if(key.attachment().toString().contains("login-ok")) {
+                            System.out.println("user logged in");
+                        }
+                        if(key.attachment().toString().contains("logout-ok")) {
+                            System.out.println("user logged out");
+                        }
                         //TODO controllare che l'attachment ci sia?
-                        //TODO casting a stringa brutto?
-                        WinUtils.send((String)key.attachment(), client);
+                        WinUtils.send(key.attachment().toString(), client);
                                                 
                         //dopo aver scritto torno in lettura
                         key.interestOps(SelectionKey.OP_READ);
                     }
                 } catch (IOException ex) {
+                    System.err.println("ERROR: lost connection with client, disconnecting user...");
+                    unregisterForCallback();
                     key.cancel();
                     try {
                         key.channel().close();
@@ -265,14 +269,13 @@ public class WinServerMain {
         //controllare se era presente una precende sessione
         //se c'era implementare anche come ricaricare tutta la roba
         serverStorage = new WinServerStorage();
-
+        onlineUsers = new ConcurrentHashMap<SelectableChannel, String>();
         // inizializzo il pool di thread e il thread per le ricompense
         winServer.startThreadPool();
 
         System.out.println("Listening on port: " + TCPport);
 
         //TODO RMI? punto adatto?
-
         winServer.registrationServiceRegister();
         winServer.notificationServiceRegister();
         winServer.startMulticast();

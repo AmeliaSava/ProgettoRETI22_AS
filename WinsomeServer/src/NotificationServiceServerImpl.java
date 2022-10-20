@@ -24,8 +24,7 @@ public class NotificationServiceServerImpl extends RemoteObject implements Notif
 
     @Override
     public void unregisterForCallback(NotificationServiceClient clientInterface, String username) throws RemoteException {
-    	
-    	
+
         if(registeredClients.remove(username, clientInterface)) {
             System.out.println("removed client");
         } else {
@@ -43,5 +42,7 @@ public class NotificationServiceServerImpl extends RemoteObject implements Notif
         NotificationServiceClient client = (NotificationServiceClient) registeredClients.get(username);
         client.notifyUnfollow(username, unfollower);
     }
+
+    public void emergencyUnregister(String username)
 
 }

@@ -25,20 +25,16 @@ public class RegistrationServiceImpl implements RegistrationService{
        
     	System.out.println("User " + username + " wants to register with password " + password);
 
-        for(int i = 0; i < tagList.size(); i++) {
-            System.out.print(tagList.get(i) + " ");
+    	synchronized (serverStorage.getUserMap()) {
+            // Controllo che lo username non sia gia' in uso
+            if (serverStorage.userIsRegistred(username)) {
+                return -1;
+            }
+
+            // Creo il nuovo utente e lo inserisco in memoria
+            WinUser newUser = new WinUser(username, password, tagList);
+            serverStorage.addNewUser(username, newUser);
         }
-        
-        // Controllo che lo username non sia gia' in uso
-        if(serverStorage.userIsRegistred(username)) {
-            return -1;
-        }
-
-        // Creo il nuovo utente e lo inserisco in memoria
-
-        WinUser newUser = new WinUser(username, password, tagList);
-        serverStorage.addNewUser(username, newUser);
-
         return 0;
         
     }

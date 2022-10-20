@@ -1,20 +1,20 @@
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Vector;
 
 public class WinUser {
 
     //TODO private UUID idUser;
-    private String username;
-    private String password;
-    private List<String> tagList;
+    private final String username;
+    private final String password;
+    private final List<String> tagList;
     
-    private List<String> followedUsers;
-    private List<String> followers;
-    private List<UUID> blog;
-    private List<UUID> feed;
+    private Vector<String> followedUsers;
+    private Vector<String> followers;
+    private Vector<UUID> blog;
+    private Vector<UUID> feed;
     
-    private List<WinTransaction> wallet;
+    private Vector<WinTransaction> wallet;
     private double walletTot;
 
     public WinUser(String username, String password, List<String> tagList) {
@@ -22,11 +22,11 @@ public class WinUser {
         this.username = username;
         this.password = password;
         this.tagList = tagList;
-        this.followedUsers = new ArrayList<String>();
-        this.followers = new ArrayList<String>();
-        this.blog = new ArrayList<UUID>();
-        this.feed = new ArrayList<UUID>();
-        this.wallet = new ArrayList<WinTransaction>();
+        this.followedUsers = new Vector<String>();
+        this.followers = new Vector<String>();
+        this.blog = new Vector<UUID>();
+        this.feed = new Vector<UUID>();
+        this.wallet = new Vector<WinTransaction>();
         this.walletTot = 0;
     }
 
@@ -37,44 +37,43 @@ public class WinUser {
     public String getPassword() {
         return password;
     }
+
     public List<String> getTagList(){
         return tagList;
     }
 
-    public List<String> getfollowedUsers() {
-        return followedUsers;
-    }
+    public Vector<String> getfollowedUsers() { return followedUsers; }
 
-    public List<String> getfollowers() {
+    public Vector<String> getfollowers() {
         return followers;
     }
 
-    public List<UUID> getFeed() { return feed; }
+    public Vector<UUID> getFeed() { return feed; }
 
-    public List<UUID> getBlog() { return blog; }
+    public Vector<UUID> getBlog() { return blog; }
     
-    public List<WinTransaction> getWallet() { return wallet; }
+    public Vector<WinTransaction> getWallet() { return wallet; }
     
     public double getWalletTot() { return walletTot; }
 
-    public int followUser(String username) {
+    public synchronized int followUser(String username) {
         if(followedUsers.contains(username)) return -1;
         followedUsers.add(username);
         return 0;
     }
 
-    public int unfollowUser(String username) {
+    public synchronized int unfollowUser(String username) {
         if(!(followedUsers.contains(username))) return -1;
         followedUsers.remove(username);
         return 0;
     }
 
-    public void addFollower(String username) {
+    public synchronized void addFollower(String username) {
         if(followers.contains(username)) return;
         followers.add(username);
     }
 
-    public void removeFollower(String username) {
+    public synchronized void removeFollower(String username) {
         if(!(followers.contains(username))) return;
         followers.remove(username);
     }
@@ -87,15 +86,13 @@ public class WinUser {
     	blog.remove(idPost); 
     }
     
-    public void updateFeed(UUID idPost) {
-    	feed.add(idPost);
-    }
+    public void addPostToFeed(UUID idPost) { feed.add(idPost); }
     
     public void removeFeed(UUID idPost) {
     	feed.remove(idPost);
     }
     
-    public void updateWallet(double value) {
+    public synchronized void updateWallet(double value) {
     	
     	WinTransaction newT = new WinTransaction(value);
     	
