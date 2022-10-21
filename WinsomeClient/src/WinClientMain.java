@@ -1,6 +1,7 @@
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -15,6 +16,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WinClientMain {
 
@@ -40,7 +42,7 @@ public class WinClientMain {
     private WinClientWallUp WalletUpdate;
     private Thread WallUp;
 
-    public volatile boolean print = true;
+    public AtomicBoolean print = new AtomicBoolean(true);
 
     public void configClient () {
 
@@ -89,7 +91,6 @@ public class WinClientMain {
         SocketAddress address = new InetSocketAddress(hostAddress, TCPserverport);
 
         try {
-            //TODO timeout
             clientSocket = SocketChannel.open(address);
             clientSocket.socket().setSoTimeout(socketTimeout);
             //aspetto che la connessione sia stabilita
@@ -302,11 +303,10 @@ public class WinClientMain {
         	return;
         }
 
-        System.out.println(" < You have " + listFollowers.size() + " followers:");
-
-        for(String user : listFollowers) {
-            System.out.println(user);
-        }
+        TableList tl = new TableList(1,
+                "You have " + listFollowers.size() + " followers").withUnicode(true);
+        listFollowers.forEach(user -> tl.addRow(user));
+        tl.print();
     }
     
     private void listFollowing() throws IOException {
@@ -691,7 +691,7 @@ public class WinClientMain {
 
         } else System.out.println(walletbtcJson.get("result-msg").getAsString());
     }
-    
+
     public static void main(String[] args) {
 
         //Parsing del file di configurazione
@@ -716,9 +716,9 @@ public class WinClientMain {
             System.out.print("> ");
 
             String action;
-            winClient.print = false;
+            winClient.print.set(false);
             while(scan.hasNextLine() && !((action = scan.nextLine()).equals("exit"))) {
-                winClient.print = true;
+                winClient.print.set(true);
                 // Divido la stringa per fare i controlli
                 String[] command = action.split(" ");
                 
@@ -900,7 +900,7 @@ public class WinClientMain {
                 }
                 System.out.print("> ");
                 System.out.flush();
-                winClient.print = false;
+                winClient.print.set(false);
             }
             System.out.println("Closing session...");
             scan.close();

@@ -108,8 +108,8 @@ public class WinServerMain {
     }
 
     private void startThreadPool() {
-        //TODO rejection handler
-        threadPool = new ThreadPoolExecutor(0,100, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(100));
+        threadPool = new ThreadPoolExecutor(0,1, 60, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(1), new ThreadPoolExecutor.AbortPolicy());
         System.out.println("Threadpool started");
     }
 
@@ -215,7 +215,7 @@ public class WinServerMain {
                     SocketChannel client = (SocketChannel) key.channel();
 
                     if(key.attachment() == null) {
-                        JsonObject response = new Gson().fromJson(key.attachment().toString(), JsonObject.class);
+                        JsonObject response = new JsonObject();
                         response.addProperty("result", -1);
                         response.addProperty("result-msg", "Your request was not processed by server, retry");
                         WinUtils.send(response.toString(), client);
@@ -311,7 +311,12 @@ public class WinServerMain {
                             continue;
                         }
 
-                        threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI, multicastAddress, UDPport));
+                        try{
+                            threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI, multicastAddress, UDPport));
+                        } catch(RejectedExecutionException e) {
+                            System.err.println("ERROR: task rejected");
+                            key.interestOps(SelectionKey.OP_WRITE);
+                        }
 
                     }
                     else if (key.isWritable() && key.isValid()) {
@@ -320,11 +325,12 @@ public class WinServerMain {
                         SocketChannel client = (SocketChannel) key.channel();
 
                         if(key.attachment() == null) {
-                            JsonObject response = new Gson().fromJson(key.attachment().toString(), JsonObject.class);
+                            JsonObject response = new JsonObject();
                             response.addProperty("result", -1);
                             response.addProperty("result-msg", "Your request was not processed by server, retry");
                             WinUtils.send(response.toString(), client);
                             key.interestOps(SelectionKey.OP_READ);
+                            continue;
                         }
 
                         JsonObject response = new Gson().fromJson(key.attachment().toString(), JsonObject.class);

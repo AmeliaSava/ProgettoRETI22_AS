@@ -3,6 +3,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WinClientWallUp implements Runnable{
 
@@ -11,9 +12,9 @@ public class WinClientWallUp implements Runnable{
 
     private volatile boolean stop;
 
-    private volatile boolean print;
+    private AtomicBoolean print;
 
-    public WinClientWallUp(int UDPport, String multicastAdd, boolean print) {
+    public WinClientWallUp(int UDPport, String multicastAdd, AtomicBoolean print) {
         this.UDPport = UDPport;
         this.multicastAdd = multicastAdd;
         this.stop = false;
@@ -26,29 +27,28 @@ public class WinClientWallUp implements Runnable{
 
         while (!stop) {
 
-            //Usare una size piu' significativa o mandarla
-            byte[] message = new byte[100];
+            byte[] message = new byte[50];
 
             InetAddress udpAdd = null;
             try {
                 udpAdd = InetAddress.getByName(multicastAdd);
             } catch (UnknownHostException e) {
-                // TODO Auto-generated catch block
+                System.err.println("ERROR: unknown host multicast " + e.getMessage());
                 e.printStackTrace();
             }
 
-            //mi connetto al gruppo di multicast
+            // Mi connetto al gruppo di multicast
             DatagramPacket dp = new DatagramPacket (message, message.length);
             try (MulticastSocket ms = new MulticastSocket(UDPport)) {
                 ms.joinGroup(udpAdd);
-
                 ms.setReuseAddress(true);
-
                 ms.receive(dp);
             } catch (IOException e) {
+                System.err.println("ERROR: multicast " + e.getMessage());
                 e.printStackTrace();
             }
-            String message2 = new String(dp.getData());
+            String message2 = new String(dp.getData(), dp.getOffset(), dp.getLength());
+            while (!print.get()) Thread.yield();
             System.out.println(message2);
         }
     }

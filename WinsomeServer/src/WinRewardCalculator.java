@@ -4,10 +4,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WinRewardCalculator implements Runnable {
@@ -46,6 +43,7 @@ public class WinRewardCalculator implements Runnable {
             try (DatagramSocket mc = new DatagramSocket()) {
                 InetAddress udpAdd = InetAddress.getByName(multicastAddress);
                 byte[] message = "Your wallet has been updated!".getBytes(StandardCharsets.UTF_8);
+				System.out.println(new String(message));
                 DatagramPacket dp = new DatagramPacket(message, message.length, udpAdd, udpPort);
                 mc.send(dp);
 				System.out.println("Sent update on wallet status to " + multicastAddress);
