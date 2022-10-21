@@ -74,7 +74,7 @@ public class WinServerStoragePersistenceManager implements Runnable {
                 Type type = new TypeToken<ConcurrentHashMap<UUID, WinPost>>(){}.getType();
                 ConcurrentHashMap<UUID, WinPost> newPostMap = gson.fromJson(jsonInput.toString(), type);
 
-                System.out.println("Post storage size" + newPostMap.size());
+                System.out.println("Post storage size " + newPostMap.size());
 
                 serverStorage.setPostMap(newPostMap);
             }
@@ -83,39 +83,41 @@ public class WinServerStoragePersistenceManager implements Runnable {
         }
 
         while(!stop) {
-
-            WinUtils.sleep(time * 1000);
-
-            synchronized (serverStorage.getUserMap()) {
-                try (FileWriter fw = new FileWriter(userFile)) {
-                    System.out.println("Saving Server user status");
-                    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                    String json = gson.toJson(serverStorage.getUserMap());
-                    fw.write(json);
-                } catch (IOException e) {
-                    System.out.println("ERROR: write user map file");
-                    e.printStackTrace();
-                }
+            try {
+                Thread.sleep(time * 1000);
+            } catch (InterruptedException e) {
+                break;
             }
-            synchronized (serverStorage.getPostMap()) {
-                try (FileWriter fw = new FileWriter(postFile)) {
-                    System.out.println("Saving Server post status");
-                    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                    String json = gson.toJson(serverStorage.getPostMap());
-                    fw.write(json);
-                } catch (IOException e) {
-                    System.out.println("ERROR: write post map file");
-                    e.printStackTrace();
-                }
+            saveStorage();
+        }
+    }
+    private void saveStorage() {
+        synchronized (serverStorage.getUserMap()) {
+            try (FileWriter fw1 = new FileWriter(userFile)) {
+                System.out.println("Saving Server user status");
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                String json = gson.toJson(serverStorage.getUserMap());
+                fw1.write(json);
+            } catch (IOException e) {
+                System.out.println("ERROR: write user map file");
+                e.printStackTrace();
+            }
+        }
+        synchronized (serverStorage.getPostMap()) {
+            try (FileWriter fw = new FileWriter(postFile)) {
+                System.out.println("Saving Server post status");
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                String json = gson.toJson(serverStorage.getPostMap());
+                fw.write(json);
+            } catch (IOException e) {
+                System.out.println("ERROR: write post map file");
+                e.printStackTrace();
             }
         }
     }
-
     public void stop() {
+        saveStorage();
         stop = true;
     }
 
-    public void delete() {
-        if(!userFile.delete() && !postFile.delete()) System.err.println("ERROR: resetting server storage");
-    }
 }

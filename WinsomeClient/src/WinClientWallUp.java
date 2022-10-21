@@ -9,12 +9,15 @@ public class WinClientWallUp implements Runnable{
     private int UDPport;
     private String multicastAdd;
 
-    private boolean stop;
+    private volatile boolean stop;
 
-    public WinClientWallUp(int UDPport, String multicastAdd) {
+    private volatile boolean print;
+
+    public WinClientWallUp(int UDPport, String multicastAdd, boolean print) {
         this.UDPport = UDPport;
         this.multicastAdd = multicastAdd;
         this.stop = false;
+        this.print = print;
     }
 
     @SuppressWarnings("deprecation")
@@ -45,9 +48,9 @@ public class WinClientWallUp implements Runnable{
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println("UDP" + new String(dp.getData()));
+            String message2 = new String(dp.getData());
+            System.out.println(message2);
         }
-
     }
 
     public void closeMulticast() {

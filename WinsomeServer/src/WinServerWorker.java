@@ -58,7 +58,7 @@ public class WinServerWorker implements Runnable {
                 // TODO non funziona
 
                 // Se l'utente ne ha seguito un'altro
-                if((r == 0) && serverStorage.getOnlineUsers().containsKey(message.get("user-to-follow").getAsString())) {
+                if((r == 0) && serverStorage.getOnlineUsers().contains(message.get("user-to-follow").getAsString())) {
                     // notifico quell'utente tramite RMI, solo se e' online
                     try {
                         followersRMI.follow(message.get("user-to-follow").getAsString(), message.get("user").getAsString());
@@ -183,6 +183,7 @@ public class WinServerWorker implements Runnable {
         loginJson.addProperty("UDPport", UDPport);
 
         loginJson.addProperty("login-ok", 0);
+        loginJson.addProperty("user", username);
         
         key.attach(loginJson.toString());
     }
@@ -208,6 +209,8 @@ public class WinServerWorker implements Runnable {
     	
     	logoutJson.addProperty("result", 0);
     	logoutJson.addProperty("result-msg", username + " logged out");
+        logoutJson.addProperty("logout-ok", 0);
+        logoutJson.addProperty("user", username);
         
         key.attach(logoutJson.toString());
     }

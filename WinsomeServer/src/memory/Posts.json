@@ -9,7 +9,7 @@
     "ratings": [],
     "upvoteCount": 0,
     "downvoteCount": 0,
-    "Niter": 1
+    "Niter": 55
   },
   "9ed0136d-4c1f-476a-8bb5-e43188099017": {
     "idPost": "9ed0136d-4c1f-476a-8bb5-e43188099017",
@@ -21,7 +21,7 @@
     "ratings": [],
     "upvoteCount": 0,
     "downvoteCount": 0,
-    "Niter": 1
+    "Niter": 55
   },
   "38bede6d-89d9-4782-bcdd-a6bea16f7082": {
     "idPost": "38bede6d-89d9-4782-bcdd-a6bea16f7082",
@@ -41,7 +41,7 @@
     ],
     "upvoteCount": 1,
     "downvoteCount": 0,
-    "Niter": 1
+    "Niter": 55
   },
   "b8887646-156f-487c-a638-9c030b186c83": {
     "idPost": "b8887646-156f-487c-a638-9c030b186c83",
@@ -102,7 +102,7 @@
     ],
     "upvoteCount": 2,
     "downvoteCount": 2,
-    "Niter": 1
+    "Niter": 55
   },
   "867ad437-3f89-4666-b58d-a8ad4ebd8902": {
     "idPost": "867ad437-3f89-4666-b58d-a8ad4ebd8902",
@@ -201,7 +201,7 @@
     ],
     "upvoteCount": 5,
     "downvoteCount": 0,
-    "Niter": 1
+    "Niter": 55
   },
   "193b91eb-9db6-496d-97bb-22fc9823cb81": {
     "idPost": "193b91eb-9db6-496d-97bb-22fc9823cb81",
@@ -213,6 +213,6 @@
     "ratings": [],
     "upvoteCount": 0,
     "downvoteCount": 0,
-    "Niter": 1
+    "Niter": 55
   }
 }

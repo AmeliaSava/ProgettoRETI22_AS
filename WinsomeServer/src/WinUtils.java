@@ -56,12 +56,5 @@ public final class WinUtils {
         String json = gson.toJson(toSend);
         return json;
     }
-    
-    public static void sleep(long timeMillis) {
-        try {
-            Thread.sleep(timeMillis);
-        } catch(InterruptedException e) {
-            // ATTENZIONE
-        }
-    }
+
 }

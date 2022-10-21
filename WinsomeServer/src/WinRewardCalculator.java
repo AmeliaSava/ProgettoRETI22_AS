@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,14 +34,18 @@ public class WinRewardCalculator implements Runnable {
         System.out.println("Reward calculator started");
 
         while(!stop) {
-        	
-            WinUtils.sleep(time * 1000);
 
-        	calculateReward();
+			try {
+				Thread.sleep(time * 1000);
+			} catch (InterruptedException e) {
+				break;
+			}
+
+			calculateReward();
         	
             try (DatagramSocket mc = new DatagramSocket()) {
                 InetAddress udpAdd = InetAddress.getByName(multicastAddress);
-                byte[] message = "Your wallet has been updated!".getBytes();
+                byte[] message = "Your wallet has been updated!".getBytes(StandardCharsets.UTF_8);
                 DatagramPacket dp = new DatagramPacket(message, message.length, udpAdd, udpPort);
                 mc.send(dp);
 				System.out.println("Sent update on wallet status to " + multicastAddress);
@@ -145,7 +150,7 @@ public class WinRewardCalculator implements Runnable {
     	
     }
 
-    public void disconnect() {
+    public void stop() {
         stop = true;
     }
     

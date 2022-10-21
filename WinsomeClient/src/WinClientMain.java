@@ -25,6 +25,8 @@ public class WinClientMain {
 
     private static SocketChannel clientSocket;
 
+    private int socketTimeout;
+
     private static RegistrationService serverRegister;
 
     private static NotificationServiceServer server;
@@ -37,6 +39,8 @@ public class WinClientMain {
     // Thread per la ricezione degli aggiornamenti sul portafoglio
     private WinClientWallUp WalletUpdate;
     private Thread WallUp;
+
+    public volatile boolean print = true;
 
     public void configClient () {
 
@@ -69,6 +73,9 @@ public class WinClientMain {
                         case "SERVERNAME":
                             hostAddress = st.nextToken();
                             break;
+                        case "SOCKETTIMEOUT":
+                            socketTimeout = Integer.parseInt(st.nextToken());
+                            break;
                     }
 
                 }
@@ -84,6 +91,7 @@ public class WinClientMain {
         try {
             //TODO timeout
             clientSocket = SocketChannel.open(address);
+            clientSocket.socket().setSoTimeout(socketTimeout);
             //aspetto che la connessione sia stabilita
             while(!clientSocket.finishConnect()) {}
         } catch (IOException e) {
@@ -132,8 +140,9 @@ public class WinClientMain {
      * Avvia un thread che si mettera' in attesa degli aggiornamenti sul wallet
      */
     private void connectMulticast(String multicastAddress, int UDPserverport) {
-        WalletUpdate = new WinClientWallUp(UDPserverport, multicastAddress);
+        WalletUpdate = new WinClientWallUp(UDPserverport, multicastAddress, print);
         WallUp = new Thread(WalletUpdate);
+        WallUp.setDaemon(true);
         WallUp.start();
     }
 
@@ -226,16 +235,13 @@ public class WinClientMain {
         // Se il logout e' andato a buon fine resetto la sessione e mi disconnetto da multicast e callback
         if(logoutJson.get("result").getAsInt() == 0) {
         	System.out.println("< " + logoutJson.get("result-msg").getAsString());
-            //System.out.println(winClient.currentUser + " logged out");
 
+            // Resetto tutte le risorse associate all'utente corrente
         	callbackUnregister();
-
             currentUser = null;
             listFollowers.clear();
             disconnectMulticast();
-
         } else {
-        	System.out.print("< ");
         	System.err.println(logoutJson.get("result-msg").getAsString());
         }
     }
@@ -710,8 +716,9 @@ public class WinClientMain {
             System.out.print("> ");
 
             String action;
+            winClient.print = false;
             while(scan.hasNextLine() && !((action = scan.nextLine()).equals("exit"))) {
-            	            	
+                winClient.print = true;
                 // Divido la stringa per fare i controlli
                 String[] command = action.split(" ");
                 
@@ -892,12 +899,28 @@ public class WinClientMain {
                         break;
                 }
                 System.out.print("> ");
+                System.out.flush();
+                winClient.print = false;
             }
             System.out.println("Closing session...");
             scan.close();
+
+            // Se l'utente richiede di uscire senza fare il logout verra' fatto in automatico
+            // Se il socket e' connesso mi disconnetto
+            if(clientSocket != null && clientSocket.isConnected()) {
+                try {
+                    if(winClient.currentUser != null) {
+                        winClient.logoutUser();
+                    }
+                    clientSocket.close();
+                } catch (IOException e) {
+                    System.err.println("ERROR: cannot disconnect client " + e.getMessage());
+                }
+            }
+
         } catch (IOException e1) {
             System.err.println("ERROR: problem communicating with server: " + e1.getMessage());
-            e1.printStackTrace();
+            System.exit(-1);
         }
         System.exit(0);
     }

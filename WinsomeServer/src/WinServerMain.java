@@ -1,3 +1,4 @@
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import java.io.File;
@@ -22,29 +23,34 @@ public class WinServerMain {
     private static int TCPport;
     private static int UDPport;
 
-    private static int RMIportregister;
-    private static int RMIportfollowers;
+    // Channel Multiplexing con NIO
+    private ServerSocketChannel serverChannel;
+    private Selector selector;
+    private int selectTimeout;
 
+    // Informazioni per il calcolo periodico delle ricompense
     private static int rewardTime;
     private static String multicastAddress;
-    private static WinServerStorage serverStorage;
 
-    private static ConcurrentHashMap<SelectableChannel, String> onlineUsers;
+    // Struttura dati per tenere traccia degli utenti attualmente connessi
+    private static ConcurrentHashMap<SelectableChannel, String> activeUsers;
 
     // Informazioni per la persistenza nel file system
+    private static WinServerStorage serverStorage;
     private WinServerStoragePersistenceManager serverStorageKeeper;
     private Thread keeperThread;
     private int saveTime;
-
-    private ThreadPoolExecutor threadPool;
 
     // Informazioni per il calcolo periodico delle ricompense
     private WinRewardCalculator rewardCalculator;
     private Thread calcThread;
     private int authorPercentage;
-
+    private ThreadPoolExecutor threadPool;
     private static WinServerMain winServer;
-   
+
+    // RMI
+    private static int RMIportregister;
+    private static int RMIportfollowers;
     private NotificationServiceServerImpl followersRMI;
 
     public void configServer () {
@@ -90,6 +96,9 @@ public class WinServerMain {
                         case "SAVETIME":
                         	saveTime = Integer.parseInt(st.nextToken());
                         	break;
+                        case "SELECTTIMEOUT":
+                            selectTimeout = Integer.parseInt(st.nextToken());
+                            break;
                     }
 
                 }
@@ -102,6 +111,19 @@ public class WinServerMain {
         //TODO rejection handler
         threadPool = new ThreadPoolExecutor(0,100, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(100));
         System.out.println("Threadpool started");
+    }
+
+    public void stopThreadPool() {
+        threadPool.shutdown();
+        try {
+            if(threadPool.awaitTermination(5000, TimeUnit.MILLISECONDS))
+                threadPool.shutdownNow();
+        } catch (InterruptedException e) {
+            threadPool.shutdownNow();
+            System.err.println("ERROR: threadpool termination interrupted" + e.getMessage());
+            e.printStackTrace();
+        }
+        if(threadPool.isTerminated()) System.out.println("Threadpool terminated");
     }
 
     public void registrationServiceRegister() {
@@ -144,31 +166,87 @@ public class WinServerMain {
 
         rewardCalculator = new WinRewardCalculator(serverStorage, rewardTime, multicastAddress, UDPport, authorPercentage);
         calcThread = new Thread(rewardCalculator);
+        calcThread.setDaemon(true);
         calcThread.start();
     }
 
     public void stopMulticast() {
-        rewardCalculator.disconnect();
-        calcThread.interrupt();
+        if(calcThread != null) {
+            rewardCalculator.stop();
+            calcThread.interrupt();
+            System.out.println("Reward thread terminated");
+        }
     }
 
     public void startStorageKeeper() {
-
         serverStorageKeeper = new WinServerStoragePersistenceManager(serverStorage, saveTime);
         keeperThread = new Thread(serverStorageKeeper);
+        keeperThread.setDaemon(true);
         keeperThread.start();
     }
 
     public void stopStorageKeeper() {
-        serverStorageKeeper.stop();
-        keeperThread.interrupt();
+        if(keeperThread != null) {
+            serverStorageKeeper.stop();
+            keeperThread.interrupt();
+            System.out.println("Persistence thread terminated");
+        }
     }
+    public void closeConnections() {
+        System.out.println("Closing all connections with clients...");
+        try {
+            selector.select(selectTimeout);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
 
-    public void connect() {
-        // Channel Multiplexing con NIO
+        // Vado a vedere quali delle chiavi sono pronte
+        Set<SelectionKey> readyKeys = selector.selectedKeys();
+        Iterator<SelectionKey> iterator = readyKeys.iterator();
 
-        ServerSocketChannel serverChannel;
-        Selector selector;
+        while(iterator.hasNext()) {
+
+            SelectionKey key = iterator.next();
+            iterator.remove();
+
+            try {
+                if (key.isWritable() && key.isValid()) {
+                    System.out.println("writable");
+                    SocketChannel client = (SocketChannel) key.channel();
+
+                    if(key.attachment() == null) {
+                        JsonObject response = new Gson().fromJson(key.attachment().toString(), JsonObject.class);
+                        response.addProperty("result", -1);
+                        response.addProperty("result-msg", "Your request was not processed by server, retry");
+                        WinUtils.send(response.toString(), client);
+                    }
+
+                    JsonObject response = new Gson().fromJson(key.attachment().toString(), JsonObject.class);
+
+                    if(response.has("login-ok")) {
+                        System.out.println("user logged in");
+                        activeUsers.put(key.channel(), response.get("user").getAsString());
+                    }
+                    if(response.has("logout-ok")) {
+                        System.out.println("user logged out");
+                        activeUsers.remove(key.channel(), response.get("user").getAsString());
+                    }
+
+                    WinUtils.send(response.toString(), client);
+                }
+            } catch (IOException ex) {
+                System.err.println("ERROR: lost connection with client, disconnecting user...");
+                // In caso di errore disconnetto l'utente
+                if(activeUsers.get(key.channel()) != null){
+                    followersRMI.emergencyUnregister(activeUsers.get(key.channel()));
+                    serverStorage.removeOnlineUser(activeUsers.get(key.channel()));
+                }
+                key.cancel();
+            }
+            key.cancel();
+        }
+    }
+    private void connect() {
 
         //apro il SSC collegandolo alla porta e poi all'indirizzo
         try {
@@ -190,14 +268,13 @@ public class WinServerMain {
 
         while(true) {
             try {
-                // TODO bloccante fino a che non c'è una richeista di connessione
-                selector.select(1000);
+                selector.select(selectTimeout);
             } catch (IOException ex) {
                 ex.printStackTrace();
                 break;
             }
 
-            // vado a vedere quali delle chiavi sono pronte
+            // Vado a vedere quali delle chiavi sono pronte
             Set<SelectionKey> readyKeys = selector.selectedKeys();
             Iterator<SelectionKey> iterator = readyKeys.iterator();
 
@@ -207,13 +284,12 @@ public class WinServerMain {
                 iterator.remove();
 
                 try {
-
                     if(key.isAcceptable() && key.isValid()) {
                         System.out.println("accetable");
                         //c'è una richiesta di connessione
                         ServerSocketChannel server = (ServerSocketChannel) key.channel();
                         SocketChannel client = server.accept();
-                        System.out.println("Accepted connection from " + client);
+                        System.out.println("Accepted connection from client");
                         client.configureBlocking(false);
                         //registro il socket che mi collega a quel selettore con l'op write o read
                         client.register(selector, SelectionKey.OP_READ);
@@ -225,6 +301,16 @@ public class WinServerMain {
 
                         String operation = WinUtils.receive(clientRead);
 
+                        if(operation.equals("")) {
+                            if(activeUsers.get(key.channel()) != null){
+                                followersRMI.emergencyUnregister(activeUsers.get(key.channel()));
+                                serverStorage.removeOnlineUser(activeUsers.get(key.channel()));
+                            }
+                            key.cancel();
+                            System.out.println("Closed connection with client");
+                            continue;
+                        }
+
                         threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI, multicastAddress, UDPport));
 
                     }
@@ -233,51 +319,64 @@ public class WinServerMain {
                         //scrittura disponibile
                         SocketChannel client = (SocketChannel) key.channel();
 
-                        if(key.attachment().toString().contains("login-ok")) {
+                        if(key.attachment() == null) {
+                            JsonObject response = new Gson().fromJson(key.attachment().toString(), JsonObject.class);
+                            response.addProperty("result", -1);
+                            response.addProperty("result-msg", "Your request was not processed by server, retry");
+                            WinUtils.send(response.toString(), client);
+                            key.interestOps(SelectionKey.OP_READ);
+                        }
+
+                        JsonObject response = new Gson().fromJson(key.attachment().toString(), JsonObject.class);
+
+                        if(response.has("login-ok")) {
                             System.out.println("user logged in");
+                            activeUsers.put(key.channel(), response.get("user").getAsString());
                         }
-                        if(key.attachment().toString().contains("logout-ok")) {
+                        if(response.has("logout-ok")) {
                             System.out.println("user logged out");
+                            activeUsers.remove(key.channel(), response.get("user").getAsString());
                         }
-                        //TODO controllare che l'attachment ci sia?
-                        WinUtils.send(key.attachment().toString(), client);
+
+                        WinUtils.send(response.toString(), client);
                                                 
-                        //dopo aver scritto torno in lettura
+                        // Dopo aver scritto torno in lettura
                         key.interestOps(SelectionKey.OP_READ);
                     }
                 } catch (IOException ex) {
                     System.err.println("ERROR: lost connection with client, disconnecting user...");
-                    unregisterForCallback();
-                    key.cancel();
-                    try {
-                        key.channel().close();
-                    } catch (IOException cex) {
-                        cex.printStackTrace();
+                    // In caso di errore disconneto l'utente
+                    if(activeUsers.get(key.channel()) != null){
+                        followersRMI.emergencyUnregister(activeUsers.get(key.channel()));
+                        serverStorage.removeOnlineUser(activeUsers.get(key.channel()));
                     }
+                    key.cancel();
                 }
             }
         }
     }
-
     public static void main(String[] args) {
 
-        //configserver statica?
         winServer = new WinServerMain();
 
         // Parsing del file di configurazione
         winServer.configServer();
-        //controllare se era presente una precende sessione
-        //se c'era implementare anche come ricaricare tutta la roba
+
+        // Inizializzo le strutture dati per la gestione del server
         serverStorage = new WinServerStorage();
-        onlineUsers = new ConcurrentHashMap<SelectableChannel, String>();
-        // inizializzo il pool di thread e il thread per le ricompense
+        activeUsers = new ConcurrentHashMap<SelectableChannel, String>();
+
+        // Setto lo shutdownhook per la chiusura del server
+        Runtime.getRuntime().addShutdownHook(new ServerShutdown(winServer));
+
+        // Inizializzo il pool di thread
         winServer.startThreadPool();
 
-        System.out.println("Listening on port: " + TCPport);
-
-        //TODO RMI? punto adatto?
+        //RMI per la registrazione e la notifica dei followers
         winServer.registrationServiceRegister();
         winServer.notificationServiceRegister();
+
+        // Faccio partire il thread per il calcolo delle ricompense
         winServer.startMulticast();
 
         // Faccio partire il sistema per mantenere i dati del serverStorage
@@ -286,11 +385,8 @@ public class WinServerMain {
         // Metto il server in ascolto per le connessioni
         winServer.connect();
 
-
-        //shutdown thread?
-        
-        winServer.stopMulticast();
-
+        System.out.println("Server started... ");
+        System.exit(0);
     }
 
 }

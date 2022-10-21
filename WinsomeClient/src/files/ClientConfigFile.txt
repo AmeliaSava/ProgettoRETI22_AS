@@ -10,3 +10,7 @@ RMIPORTFOLLOWERS 5556
 # Indirizzi del server
 
 SERVERNAME 127.0.0.1
+
+# Socket Timeout
+
+SOCKETTIMEOUT 100
