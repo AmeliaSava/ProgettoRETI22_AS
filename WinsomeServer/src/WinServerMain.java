@@ -20,40 +20,59 @@ import java.util.concurrent.*;
 
 public class WinServerMain {
 
-    private static int TCPport;
-    private static int UDPport;
+    // Porte
+    // Porta utilizzata per la comunicazione TCP
+    private int TCPport;
 
-    // Channel Multiplexing con NIO
+    // Informazioni per il Channel Multiplexing con NIO
+    // Socket del server
     private ServerSocketChannel serverChannel;
+    // Selettore per il multiplexing dei canali
     private Selector selector;
+    // Timout della select
     private int selectTimeout;
 
     // Informazioni per il calcolo periodico delle ricompense
-    private static int rewardTime;
-    private static String multicastAddress;
+    // Porta utilizzata per la comunicazione multicast
+    private int UDPport;
+    // Indirizzo multicast
+    private String multicastAddress;
+    // Thread per il calcolo delle ricompense
+    private WinRewardCalculator rewardCalculator;
+    private Thread calcThread;
+    // Percentuale destinata all'autore
+    private int authorPercentage;
+    // Tempo che trascorre tra un calcolo di una ricompensa e un'altro
+    private int rewardTime;
 
     // Struttura dati per tenere traccia degli utenti attualmente connessi
     private static ConcurrentHashMap<SelectableChannel, String> activeUsers;
 
     // Informazioni per la persistenza nel file system
     private static WinServerStorage serverStorage;
+    // Thread che periodicamente salva il server e lo aggiorna all'avvio
     private WinServerStoragePersistenceManager serverStorageKeeper;
     private Thread keeperThread;
+    // Tempo tra un salvataggio e l'altro
     private int saveTime;
 
-    // Informazioni per il calcolo periodico delle ricompense
-    private WinRewardCalculator rewardCalculator;
-    private Thread calcThread;
-    private int authorPercentage;
+    // RMI
+    // Porta per l'RMI di registrazione
+    private int RMIportregister;
+    // Porta per la notifica dei followers con callback
+    private int RMIportfollowers;
+    // Implementazione dei metodi dell'interfaccia remota
+    private NotificationServiceServerImpl followersRMI;
+
+    // Threadpool per la gestione delle richieste
     private ThreadPoolExecutor threadPool;
     private static WinServerMain winServer;
 
-    // RMI
-    private static int RMIportregister;
-    private static int RMIportfollowers;
-    private NotificationServiceServerImpl followersRMI;
-
-    public void configServer () {
+    /*
+     * Fa il parsing del file di configurazione settando le variabili opportune
+     * @exception FileNotFoundException Se il file di configurazione non viene trovato nel path specificato
+     */
+    private void configServer () {
 
         File file = new File(".\\src\\files\\ServerConfigFile.txt");
 
@@ -61,7 +80,6 @@ public class WinServerMain {
         try {
             sc = new Scanner(file);
         } catch (FileNotFoundException e) {
-
             System.err.println("ERROR: configuration file not found");
             e.printStackTrace();
         }
@@ -100,19 +118,25 @@ public class WinServerMain {
                             selectTimeout = Integer.parseInt(st.nextToken());
                             break;
                     }
-
                 }
             }
         }
-
+        System.out.println("Server configuration completed");
     }
 
-    private void startThreadPool() {
-        threadPool = new ThreadPoolExecutor(0,1, 60, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(1), new ThreadPoolExecutor.AbortPolicy());
-        System.out.println("Threadpool started");
+    /*
+     * Inizializza il pool di thread
+     */
+    private void initThreadPool() {
+        threadPool = new ThreadPoolExecutor(10,50, 60, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(100), new DenyPolicy());
+        System.out.println("Threadpool ready");
     }
 
+    /**
+     * Interrompe il pool di thread, allo scadere del timeout il threadpool viene terminato forzatamente
+     * @exception InterruptedException
+     */
     public void stopThreadPool() {
         threadPool.shutdown();
         try {
@@ -129,7 +153,6 @@ public class WinServerMain {
     public void registrationServiceRegister() {
 
         try {
-
             RegistrationServiceImpl registerRMI = new RegistrationServiceImpl(serverStorage);
             RegistrationService stub1 = (RegistrationService) UnicastRemoteObject.exportObject(registerRMI, 0);
             // creo un registry sulla porta dedicata all'RMI
@@ -310,28 +333,13 @@ public class WinServerMain {
                             System.out.println("Closed connection with client");
                             continue;
                         }
-
-                        try{
-                            threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI, multicastAddress, UDPport));
-                        } catch(RejectedExecutionException e) {
-                            System.err.println("ERROR: task rejected");
-                            key.interestOps(SelectionKey.OP_WRITE);
-                        }
-
+                       threadPool.execute(new WinServerWorker(operation, key, serverStorage, followersRMI,
+                               multicastAddress, UDPport));
                     }
                     else if (key.isWritable() && key.isValid()) {
                         System.out.println("writable");
                         //scrittura disponibile
                         SocketChannel client = (SocketChannel) key.channel();
-
-                        if(key.attachment() == null) {
-                            JsonObject response = new JsonObject();
-                            response.addProperty("result", -1);
-                            response.addProperty("result-msg", "Your request was not processed by server, retry");
-                            WinUtils.send(response.toString(), client);
-                            key.interestOps(SelectionKey.OP_READ);
-                            continue;
-                        }
 
                         JsonObject response = new Gson().fromJson(key.attachment().toString(), JsonObject.class);
 
@@ -376,7 +384,7 @@ public class WinServerMain {
         Runtime.getRuntime().addShutdownHook(new ServerShutdown(winServer));
 
         // Inizializzo il pool di thread
-        winServer.startThreadPool();
+        winServer.initThreadPool();
 
         //RMI per la registrazione e la notifica dei followers
         winServer.registrationServiceRegister();

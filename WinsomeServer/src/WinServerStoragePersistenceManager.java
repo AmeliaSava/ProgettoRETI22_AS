@@ -51,6 +51,8 @@ public class WinServerStoragePersistenceManager implements Runnable {
                 Type type = new TypeToken<ConcurrentHashMap<String, WinUser>>(){}.getType();
                 ConcurrentHashMap<String, WinUser> newUserMap = gson.fromJson(jsonInput.toString(), type);
 
+                if(newUserMap == null) throw new CorruptedStorageMemoryException("User map file corrupted");
+
                 System.out.println("User storage size " + newUserMap.size());
 
                 serverStorage.setUserMap(newUserMap);
@@ -73,6 +75,8 @@ public class WinServerStoragePersistenceManager implements Runnable {
                 Gson gson = new Gson();
                 Type type = new TypeToken<ConcurrentHashMap<UUID, WinPost>>(){}.getType();
                 ConcurrentHashMap<UUID, WinPost> newPostMap = gson.fromJson(jsonInput.toString(), type);
+
+                if(newPostMap == null) throw new CorruptedStorageMemoryException("Post map file corrupted");
 
                 System.out.println("Post storage size " + newPostMap.size());
 

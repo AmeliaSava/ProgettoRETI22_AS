@@ -31,7 +31,7 @@ public class WinPost {
         this.upvoteCount = 0;
         this.downvoteCount = 0;
 
-        this.Niter = 0;
+        this.Niter = 1;
     }
 
     public UUID getIdPost() { return idPost; }
@@ -87,8 +87,7 @@ public class WinPost {
     	
     	if(vote == 1) upvoteCount++;
     	else downvoteCount++;
-    	
-    	System.out.println("post rated by" + ratings.get(0).getUserrating());
+
     	return 0;
     }
     

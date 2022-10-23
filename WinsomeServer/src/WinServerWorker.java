@@ -11,19 +11,28 @@ import java.util.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+/*
+ * Classe che implementa il worker che esegue le operazioni richieste dai client al server.
+ * Parsa la richiesta del client e poi prepara una risposta che allega alla chiave che gli viene passata
+ * dal server. Interagisce con lo storage per interrogarlo sullo stato degli utenti e dei post e apporta le
+ * modifiche richieste dal client, verificandone la correttezza.
+ */
 public class WinServerWorker implements Runnable {
 
+    // Informazioni sull'operazione da eseguire
     private final String operation;
+    // La chiave associata al canale in cui verra' inserito l'esito dell'operazione
     private final SelectionKey keyWorker;
-    private final WinServerStorage serverStorage;
-
+    // Implementazione dei metodi dell'interfaccia remota
     private final NotificationServiceServerImpl followersRMI;
-
+    // Porta e indirizzo per la comunicazione multicast da comunicare al client al momento del login
     private final String multicastAddress;
     private final int UDPport;
+    // Lo storage contenente tutti i dati riguardanti utenti, post e le loro relazioni
+    private WinServerStorage serverStorage;
 
-    public WinServerWorker(String operation, SelectionKey key, WinServerStorage serverStorage, NotificationServiceServerImpl followersRMI,
-                           String multicastAddress, int UDPport) {
+    public WinServerWorker(String operation, SelectionKey key, WinServerStorage serverStorage,
+                           NotificationServiceServerImpl followersRMI, String multicastAddress, int UDPport) {
         this.operation = operation;
         this.keyWorker = key;
         this.serverStorage = serverStorage;
@@ -31,14 +40,16 @@ public class WinServerWorker implements Runnable {
         this.multicastAddress = multicastAddress;
         this.UDPport = UDPport;
     }
+    // getters
+    public SelectionKey getKeyWorker() { return keyWorker; }
 
     @Override
     public void run() {
-
+        // Converto il messaggio ricevuto dal client
         JsonObject message = new Gson().fromJson(operation, JsonObject.class);
 
+        // A seconda dell'operazione richiesta chiamo la funzione apporopriata
         switch (message.get("operation").getAsString()) {
-        
             case "login":
                 loginUser(message.get("user").getAsString(), message.get("password").getAsString(), keyWorker);
                 break;
@@ -52,72 +63,62 @@ public class WinServerWorker implements Runnable {
                 listFollowing(message.get("user").getAsString(), keyWorker);
                 break;
             case "follow":
-                int r = followUser(message.get("user-to-follow").getAsString(), message.get("user").getAsString(), keyWorker);
-
-                // salvo il socket channel del client per controllare che non si sia disconnesso in modo anomalo
-                // TODO non funziona
-
-                // Se l'utente ne ha seguito un'altro
-                if((r == 0) && serverStorage.getOnlineUsers().contains(message.get("user-to-follow").getAsString())) {
-                    // notifico quell'utente tramite RMI, solo se e' online
+                int r = followUser(message.get("user-to-follow").getAsString(),
+                        message.get("user").getAsString(), keyWorker);
+                // Se l'utente ne ha seguito un altro
+                if((r == 0) && serverStorage.getOnlineUsers().containsKey(message.get("user-to-follow").getAsString())) {
+                    // Notifico quell'utente tramite RMI, solo se e' online
                     try {
-                        followersRMI.follow(message.get("user-to-follow").getAsString(), message.get("user").getAsString());
+                        followersRMI.follow(message.get("user-to-follow").getAsString(),
+                                message.get("user").getAsString());
                     } catch (RemoteException e) {
                         System.err.println("ERROR: RMI callback " + e.getMessage());
                         e.printStackTrace();
                     }
                 }
-
                 break;
-                
             case "unfollow":
-                r = unfollowUser(message.get("user-to-unfollow").getAsString(), message.get("user").getAsString(), keyWorker);
-
+                r = unfollowUser(message.get("user-to-unfollow").getAsString(),
+                        message.get("user").getAsString(), keyWorker);
                 // Se l'utente ha smesso di seguirne un altro
                 if((r == 0) && serverStorage.getOnlineUsers().containsKey(message.get("user-to-unfollow").getAsString())) {
-                    // notifico quell'utente tramite RMI, so se e' online
+                    // Notifico quell'utente tramite RMI, so se e' online
                     try {
-                        followersRMI.unfollow(message.get("user-to-unfollow").getAsString(), message.get("user").getAsString());
+                        followersRMI.unfollow(message.get("user-to-unfollow").getAsString(),
+                                message.get("user").getAsString());
                     } catch (RemoteException e) {
                         System.err.println("ERROR: RMI callback " + e.getMessage());
                         e.printStackTrace();
                     }
                 }
-
                 break;
-                
             case "blog":
                 viewBlog(message.get("user").getAsString(), keyWorker);
             	break;
-            	
             case "post":
-                createPost(message.get("user").getAsString(), message.get("title").getAsString(), message.get("content").getAsString(), keyWorker);
+                createPost(message.get("user").getAsString(), message.get("title").getAsString(),
+                        message.get("content").getAsString(), keyWorker);
                 break;
-                
             case "show feed":
                 showFeed(message.get("user").getAsString(), keyWorker);
                 break;
-
             case "show post":
                 showPost(message.get("user").getAsString(), message.get("post-id").getAsString(), keyWorker);
                 break;
-                
             case "delete":
             	deletePost(message.get("user").getAsString(), message.get("post-id").getAsString(), keyWorker);
             	break;
-            	
             case "rewin":
             	rewinPost(message.get("user").getAsString(), message.get("post-id").getAsString(), keyWorker);
             	break;
-            	
             case "rate":
-            	ratePost(message.get("user").getAsString(), message.get("post-id").getAsString(), message.get("comment").getAsInt(), keyWorker);
+            	ratePost(message.get("user").getAsString(), message.get("post-id").getAsString(),
+                        message.get("rate").getAsInt(), keyWorker);
             	break;
-            	
             case "comment":
-            	addComment(message.get("user").getAsString(), message.get("post-id").getAsString(), message.get("comment").getAsString(), keyWorker);
+            	addComment(message.get("user").getAsString(), message.get("post-id").getAsString(),
+                        message.get("comment").getAsString(), keyWorker);
             	break;
-            	
             case "wallet":
                 getWallet(message.get("user").getAsString(), keyWorker);
             	break;
@@ -130,24 +131,20 @@ public class WinServerWorker implements Runnable {
         // Comunico al main che c'e' una risposta da mandare
         keyWorker.interestOps(SelectionKey.OP_WRITE);
     }
-    
-    /*
-     * Effettua i controlli per verificare che l'utente possa effettuare il login
-     * e poi procede a salvarlo tra gli utenti online
-     * Per comunicare l'esito dell'operazione aggiunge un attachment con il messaggio alla SelectionKey
-     * 
-     * @param username lo username scelto dall'utente che vuole effettuare il login
-     * @param password la password inserita dall'utente
-     * @param key
-     * 
-     * @return niente
+
+    /**
+     * Effettua i controlli per verificare che l'utente possa effettuare il login e poi procede a salvarlo
+     * tra gli utenti online.
+     * @param username Lo username dell'utente che vuole effettuare il login
+     * @param password La password inserita dall'utente
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
      */
     private void loginUser(String username, String password, SelectionKey key) {
 
         System.out.println(username + " wants to login with psw " + password);
-
+        // Cerco l'utente tra quelli registrati
         WinUser curUser = serverStorage.getUser(username);
-       
+        // L'oggetto dove salvo le informazioni sulla risposta
         JsonObject loginJson = new JsonObject();
                       
         // L'utente non e' registrato
@@ -156,86 +153,77 @@ public class WinServerWorker implements Runnable {
         	sendError(loginJson, "Username not found, you need to register first!", key);
             return;
         }
-        
         // Password errata
         if(!(curUser.getPassword().equals(password))) {        	
             System.err.println("ERROR: incorrect password");
             sendError(loginJson, "Password is incorrect", key);
             return;
         }
-        
         // Aggiungo l'utente agli utenti online, se non c'e' gia'
         if(serverStorage.addOnlineUser(username, curUser) != null) {
         	System.err.println("ERROR: user already online");        	
         	sendError(loginJson, "User is already online, cannot login!", key);
             return;
         }
-
         // Comunico l'esito dell'operazione
         loginJson.addProperty("result", 0);
         loginJson.addProperty("result-msg", "Welcome " + username + " you are now logged in!");
-        
         // Mando la lista dei follower gia' esistenti per aggiornarla lato client
         loginJson.addProperty("followers-list", WinUtils.prepareJson(curUser.getfollowers()));
-
         // Mondo le informazioni per la comunicazione UDP multicast
         loginJson.addProperty("multicast", multicastAddress);
         loginJson.addProperty("UDPport", UDPport);
-
+        // Informazione per il server che aggiungera' l'utente tra quelli attivi
         loginJson.addProperty("login-ok", 0);
         loginJson.addProperty("user", username);
-        
+        // Allego la risposta alla chiave
         key.attach(loginJson.toString());
     }
     
-    /*
-     * Effettua i controlli per verificare che l'utente possa effettuare il logout
-     * e poi procede a rimuoverlo dagli utenti online
-     * Per comunicare l'esito dell'operazione aggiunge un attachment con il messaggio alla SelectionKey
-     * 
-     * @param username lo username scelto dall'utente che vuole effettuare il login
-     * @param key
-     * 
-     * @return niente
+    /**
+     * Rimuove l'utente dagli utenti online
+     * @param username Lo username dell'utente che vuole effettuare il logout
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
      */
     public void logoutUser(String username, SelectionKey key) {
-
         System.out.println(username + " user is logging out");
+        // Preparo l'oggetto dove inserire la risposta
     	JsonObject logoutJson = new JsonObject();
-
+        // Rimuovo l'utente da quelli online
         serverStorage.removeOnlineUser(username);
-
-        System.out.println("Loggin out user " + username);
-    	
+    	// Preparo il messaggio
     	logoutJson.addProperty("result", 0);
     	logoutJson.addProperty("result-msg", username + " logged out");
+        // Informazioni per il server per rimuovere l'utente dalle sessioni attive
         logoutJson.addProperty("logout-ok", 0);
         logoutJson.addProperty("user", username);
-        
+        // Allego il messaggio alla chiave
         key.attach(logoutJson.toString());
     }
-        
+
+    /**
+     * Trova gli utenti con almeno un tag in comune con l'utente che ha fatto la richiesta e comunica la lista
+     * di questi utenti con i loro tag al richiedente.
+     * @param username L'utente che vuole ottenere la lista
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
     public void listUsers(String username, SelectionKey key) {
-
         System.out.println("User " + username + " has requested the list of the other users");
-
+        // Ottengo l'utente che ha fatto la richiesta
         WinUser curUser = serverStorage.getUser(username);
-
-        // lista dove salvo le informazioni da mandare
-        Vector<String> toSend = new Vector<>();
-
+        // Lista dove salvo le informazioni da mandare
+        List<String> toSend = new ArrayList<>();
+        // Oggetto con le informazione del messaggio di risposta
         JsonObject usersJson = new JsonObject();
 
         // Scorro gli utenti iscritti
         for (WinUser user : serverStorage.getAllUsers()) {
             // Ignoro l'utente corrente
             if(user.getUsername().equals(curUser.getUsername())) continue;
-
             // Lista dove salvo solo i tag in comune tra i due utenti
             List<String> commonTags = new ArrayList<>(curUser.getTagList());
             commonTags.retainAll(user.getTagList());
-
-            // Se ci sono dei tag in comune aggiungo l'utente alla lista da inviare
+            // Se ci sono dei tag in comune aggiungo l'utente e i tag alla lista da inviare
             if(commonTags.size() > 0) {
                 String info = user.getUsername();
                 for (String tag : commonTags) {
@@ -245,30 +233,35 @@ public class WinServerWorker implements Runnable {
                 toSend.add(info);
             }
         }
-
+        // Se ci sono utenti nella lista la invio
         if(toSend.size() > 0) {
         	usersJson.addProperty("result", 0);
         	usersJson.addProperty("result-msg", "We found these users that share your interests:");
         	usersJson.addProperty("users-list", WinUtils.prepareJson(toSend));
-        } else { // non ho trovato utenti con tag in comune
+        } else {
+            // Non ho trovato utenti con tag in comune
         	usersJson.addProperty("result", 0);
         	usersJson.addProperty("result-msg", "There are no users that share your interests.");                       
         }
-        
+        // Allego il messeggio alla chiave
         key.attach(usersJson.toString());
     }
-    
+
+     /**
+     * Comunica all'utente che lo ha richiesto la lista degli utenti che sta seguendo
+     * @param username L'utente che vuole ottenere la lista
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
     public void listFollowing(String username, SelectionKey key) {
-
         System.out.println("User " + username + " has requested following users list");
-
+        // Ottengo l'utente
         WinUser curUser = serverStorage.getUser(username);
-
+        // Preparo il json per la risposta
         JsonObject followingJson = new JsonObject();
 
         // Prendo la lista degli utenti seguiti
         Vector<String> toSend = new Vector<>(curUser.getfollowedUsers());
-        
+        // Preparo la risposta
         // Se seguo almeno un utente
         if(toSend.size() > 0) {
            	followingJson.addProperty("result", 0);
@@ -278,39 +271,44 @@ public class WinServerWorker implements Runnable {
         	followingJson.addProperty("result", 0);
         	followingJson.addProperty("result-msg", "You are not following any user.");
         }
-        
+        // Allego il messaggio alla chiave
         key.attach(followingJson.toString());
     }
-    
+
+    /**
+     * Segue un utente per conto di un altro, effettuando dei controlli sulla validita' della richiesta,
+     * ed aggiunge al feed dell'utente che segue tutti i post dell'utente seguito e poi ritorna un messaggio
+     * con l'esito.
+     * @param userFollowed L'utente che viene seguito
+     * @param userFollowing L'utente da seguire
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     * @return 0 Se l'operazione e' andata a buon fine -1 Se l'utente che richiede l'operazione sta gia' seguendo l'altro
+     */
     public int followUser(String userFollowed, String userFollowing, SelectionKey key) {
-
         System.out.println(userFollowing + " wants to follow " + userFollowed);
-
+        // Ottengo i due utenti
         WinUser curUser = serverStorage.getUser(userFollowing);
         WinUser folUser = serverStorage.getUser(userFollowed);
-        
+        // Preparo il json per il messaggio di risposta
         JsonObject followJson = new JsonObject();
 
         // Controllo che l'utente da seguire esista
         if(folUser != null) {
             // Seguo l'utente, nel caso lo stia gia' seguendo ritorno errore
             if((curUser.followUser(userFollowed)) == 0) {
-
                 System.out.println(userFollowing + " followed " + userFollowed);
-
                 // Aggiorno la lista dei follower lato server
                 folUser.addFollower(userFollowing);
-
                 // Aggiungo tutti i post dell'utente che viene seguito al feed dell'utente che segue
                 synchronized (folUser.getBlog()) {
                     for (UUID post : folUser.getBlog()) {
                         curUser.addPostToFeed(post);
                     }
                 }
-
+                // Inserisco la risposta nel messaggio
                 followJson.addProperty("result", 0);
                 followJson.addProperty("result-msg", userFollowing + " you are now following " + userFollowed);
-
+                // Allego il messaggio alla chiave
                 key.attach(followJson.toString());
             } else {
                 sendError(followJson,  "You are already following this user", key);
@@ -320,31 +318,36 @@ public class WinServerWorker implements Runnable {
             sendError(followJson, "The user you are trying to follow does not exist", key);
             return -1;
         }
-
         return 0;
     }
 
+    /**
+     * Rimuove un utente dalla lista degli utenti seguiti dell'utente che ha richiesto l'operazione, effettuando
+     * dei controlli sulla validita' della richiesta. Se e' valida rimuove tutti i post dell'utente dal feed di quello
+     * che ha smesso di seguirlo.
+     * @param userUnfollowed L'utente rimossso
+     * @param userUnfollowing L'utente che smette di seguire
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     * @return 0 Se l'operazione e' andata a buon fine -1 Se l'utente che ha richiesto l'operazione non stava seguendo l'altro
+     */
     public int unfollowUser(String userUnfollowed, String userUnfollowing, SelectionKey key) {
-
         System.out.println(userUnfollowing + " wants to unfollow " + userUnfollowed);
-
+        // Ottengo i due utenti
         WinUser curUser = serverStorage.getUser(userUnfollowing);
         WinUser unfolUser = serverStorage.getUser(userUnfollowed);
-
+        // Preparo il json del messaggio
         JsonObject unfollowJson = new JsonObject();
 
         // Controllo che l'utente da smettere di seguire esista
         if(unfolUser != null) {
             // Smetto di seguire l'utente, se non lo stavo seguendo ritorna errore
             if((curUser.unfollowUser(userUnfollowed)) == 0) {
-
                 System.out.println(curUser.getUsername() + " unfollowed " + userUnfollowed);
-
                 // Aggiorno la lista dei follower lato server
                 unfolUser.removeFollower(userUnfollowing);
 
                 synchronized (curUser.getFeed()) {
-                    //rimuovo i post dal feed
+                    // Rimuovo i post dal feed
                     Iterator<UUID> iter = curUser.getFeed().iterator();
                     while (iter.hasNext()) {
                         UUID post = iter.next();
@@ -355,25 +358,28 @@ public class WinServerWorker implements Runnable {
                         }
                     }
                 }
+                // Preparo il messaggio
                 unfollowJson.addProperty("result", 0);
                 unfollowJson.addProperty("result-msg", userUnfollowing + " you stopped following " + userUnfollowed);
-
+                // Allego il messaggio alla chiave
                 key.attach(unfollowJson.toString());
                 return 0;
             } else {
                 sendError(unfollowJson, "You are not following this user", key);
                 return -1;
             }
-
         } else {
             sendError(unfollowJson, "The user you are trying to unfollow does not exist", key);
             return -1;
         }
     }
 
-
+    /**
+     *
+     * @param currentUser
+     * @param key
+     */
 	public void viewBlog(String currentUser, SelectionKey key) {
-
         System.out.println("User " + currentUser + " has requested for their blog");
 
         WinUser curUser = serverStorage.getUser(currentUser);
@@ -420,7 +426,7 @@ public class WinServerWorker implements Runnable {
         serverStorage.addNewPost(post);
         
         // Aggiungo l'id del post alla lista contenuta nell'utente per poter ricostruire il suo blog
-        curUser.updateBlog(post.getIdPost());
+        curUser.addPostToBlog(post.getIdPost());
 
         // Aggiungo il post al feed di ogni follower
         // TODO follower null?
@@ -525,16 +531,16 @@ public class WinServerWorker implements Runnable {
         System.out.println("Deleting post " + postID + " for " + username);
         JsonObject deleteJson = new JsonObject();
     	
-    	UUID CurPostID;
+    	UUID curPostID;
     	try {
-    		CurPostID = UUID.fromString(postID); 
+    		curPostID = UUID.fromString(postID);
     	} catch(IllegalArgumentException ex) {
     		System.err.println("ERROR: Post ID not valid");
         	sendError(deleteJson, "Post ID not valid", key);
             return;
     	}
     	
-    	WinPost curPost = serverStorage.getPost(CurPostID); 
+    	WinPost curPost = serverStorage.getPost(curPostID);
     	WinUser curUser = serverStorage.getUser(username);
 
     	if(curPost == null) {
@@ -543,28 +549,41 @@ public class WinServerWorker implements Runnable {
     	}
 
     	synchronized (curPost) {
+
+            // Se l'utente non e' autore del post
             if (!curPost.getPostAuthor().equals(username)) {
+                // Ma ha il post nel suo blog, allora l'utente vuole cancellare un rewin
+                synchronized (curUser.getBlog()) {
+                    if (curUser.getBlog().contains(curPostID)) {
+                        // Cancello il post solo dal blog dell'utente e mando la risposta
+                        curUser.removePostBlog(curPostID);
+                        deleteJson.addProperty("result", 0);
+                        deleteJson.addProperty("result-msg", "Your rewin was successfully deleted!");
+                        key.attach(deleteJson.toString());
+                        return;
+                    }
+                }
                 sendError(deleteJson, "You are not the author of this post, you cannot delete it", key);
                 return;
             }
 
             // rimuovo tutti i rewin
             for (String user : curPost.getRewins()) {
-                serverStorage.getUser(user).removeBlog(CurPostID);
+                serverStorage.getUser(user).removePostBlog(curPostID);
             }
 
             //TODO
             synchronized (curUser.getBlog()) {
                 // Rimuovo il post dal blog dell'utente
-                curUser.getBlog().remove(CurPostID);
-                serverStorage.removePost(CurPostID);
+                curUser.getBlog().remove(curPostID);
+                serverStorage.removePost(curPostID);
             }
         }
     	//rimuovo il post dal feed di tutti i suoi followers
         synchronized (curUser.getfollowers()) {
             for (String user : curUser.getfollowers()) {
                 synchronized (serverStorage.getUser(user).getFeed()) {
-                    serverStorage.getUser(user).getFeed().remove(CurPostID);
+                    serverStorage.getUser(user).getFeed().remove(curPostID);
                 }
             }
         }
@@ -611,7 +630,7 @@ public class WinServerWorker implements Runnable {
         }
 
         // Aggiungo l'ID del post al blog dell'utente
-        curUser.updateBlog(CurPostID);
+        curUser.addPostToBlog(CurPostID);
 
     	rewinJson.addProperty("result", 0);
     	rewinJson.addProperty("result-msg", "You rewinned the post");
