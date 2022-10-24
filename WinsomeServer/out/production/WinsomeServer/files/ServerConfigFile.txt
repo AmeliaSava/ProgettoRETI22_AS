@@ -4,7 +4,7 @@
 # Intervallo di tempo che passa tra il calco di una ricompensa e l'altra
 # L'intervallo e' espresso in secondi
 
-REWARDTIME 604800
+REWARDTIME 60
 
 # Percentuale della ricompensa che spetta all'autore
 

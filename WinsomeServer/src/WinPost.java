@@ -1,3 +1,8 @@
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -73,8 +78,10 @@ public class WinPost {
      * @return 0 se e' andato tutto bene -1 se l'utente ha gia' votato
      */
     public synchronized int addRate(String uservoting, int vote) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, EEE M/d/uuuu").withZone(ZoneId.systemDefault());
+        String timestamp = formatter.format(Instant.now());
     	// Creo il voto
-    	WinRate curRate = new WinRate(uservoting, vote);
+    	WinRate curRate = new WinRate(uservoting, vote, timestamp);
     	// Scorro la lista dei voti per vedere se l'utente ha gia' votato nello stesso modo
     	if(ratings.size() > 0) {
     		Iterator<WinRate> iter = ratings.iterator();
@@ -104,8 +111,10 @@ public class WinPost {
      * @param comment il testo del commento
      */
     public synchronized void addComment(String commentAuthor, String comment) {
-    	// Creo il nuovo commento
-    	WinComment curComment = new WinComment(commentAuthor, comment);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, EEE M/d/uuuu").withZone(ZoneId.systemDefault());
+        String timestamp = formatter.format(Instant.now());
+        // Creo il nuovo commento
+    	WinComment curComment = new WinComment(commentAuthor, comment, timestamp);
     	// Lo aggiungo
     	comments.add(curComment);
     	System.out.println("Comment added by " + curComment.getAuthor() + " on " + curComment.getTimestamp() + ": " + curComment.getComment());

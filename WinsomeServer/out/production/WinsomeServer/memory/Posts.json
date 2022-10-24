@@ -1,186 +1,50 @@
 {
-  "75c00241-b07e-4caa-9ead-246d98d944ba": {
-    "idPost": "75c00241-b07e-4caa-9ead-246d98d944ba",
-    "postAuthor": "honker",
-    "postContent": "HONK",
-    "postTitle": "honking good",
-    "rewins": [],
-    "comments": [],
-    "ratings": [],
-    "upvoteCount": 0,
-    "downvoteCount": 0,
-    "Niter": 10
-  },
-  "7ac186b6-615d-4d99-9c81-c5d43bc58b54": {
-    "idPost": "7ac186b6-615d-4d99-9c81-c5d43bc58b54",
-    "postAuthor": "borb",
-    "postContent": "where are seeds",
-    "postTitle": "BIGSEEDS",
-    "rewins": [],
-    "comments": [],
-    "ratings": [],
-    "upvoteCount": 0,
-    "downvoteCount": 0,
-    "Niter": 10
-  },
-  "5abf9764-d32b-4159-ad0c-6b9be2d8591f": {
-    "idPost": "5abf9764-d32b-4159-ad0c-6b9be2d8591f",
-    "postAuthor": "seagull",
-    "postContent": "AAAAAAAAAA",
-    "postTitle": "AAAAA",
+  "790756f1-ca22-479c-9935-e63e7d8bdfc8": {
+    "idPost": "790756f1-ca22-479c-9935-e63e7d8bdfc8",
+    "postAuthor": "l",
+    "postContent": "s",
+    "postTitle": "s",
     "rewins": [],
     "comments": [
       {
-        "author": "penguin",
-        "comment": "AAAAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "penguin",
-        "comment": "AAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "penguin",
-        "comment": "AAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "penguin",
-        "comment": "AAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "penguin",
-        "comment": "AAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "honker",
-        "comment": "AAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "honker",
-        "comment": "AAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "birb",
-        "comment": "AAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "birb",
-        "comment": "AAAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "birb",
-        "comment": "AAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "owl",
-        "comment": "the owls are not what they seem",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
-      },
-      {
-        "author": "flamingo",
-        "comment": "AAAAA",
-        "timestamp": "Oct 24, 2022, 11:10:19 AM"
+        "author": "m",
+        "comment": "commnet",
+        "timestamp": "10:40 PM, lun 10/24/2022"
       }
     ],
     "ratings": [
       {
         "rate": 1,
-        "timestamp": "Oct 24, 2022, 11:10:19 AM",
-        "userrating": "penguin"
-      },
-      {
-        "rate": 1,
-        "timestamp": "Oct 24, 2022, 11:10:19 AM",
-        "userrating": "honker"
-      },
-      {
-        "rate": 1,
-        "timestamp": "Oct 24, 2022, 11:10:19 AM",
-        "userrating": "birb"
-      },
-      {
-        "rate": 1,
-        "timestamp": "Oct 24, 2022, 11:10:19 AM",
-        "userrating": "owl"
-      },
-      {
-        "rate": 1,
-        "timestamp": "Oct 24, 2022, 11:10:19 AM",
-        "userrating": "flamingo"
-      }
-    ],
-    "upvoteCount": 5,
-    "downvoteCount": 0,
-    "Niter": 10
-  },
-  "dcb78164-e67e-4d64-9120-1ee86343a69e": {
-    "idPost": "dcb78164-e67e-4d64-9120-1ee86343a69e",
-    "postAuthor": "honker",
-    "postContent": "DINGDINGDING",
-    "postTitle": "i stole bell",
-    "rewins": [],
-    "comments": [],
-    "ratings": [],
-    "upvoteCount": 0,
-    "downvoteCount": 0,
-    "Niter": 10
-  },
-  "3f211874-ae39-47c0-a4b9-26c74b59a346": {
-    "idPost": "3f211874-ae39-47c0-a4b9-26c74b59a346",
-    "postAuthor": "penguin",
-    "postContent": "i found pretty stone but cant post picture, sad",
-    "postTitle": "stone",
-    "rewins": [],
-    "comments": [
-      {
-        "author": "honker",
-        "comment": "very sad",
-        "timestamp": "Oct 23, 2022, 11:11:28 AM"
-      },
-      {
-        "author": "seagull",
-        "comment": "AAAAAAAA",
-        "timestamp": "Oct 23, 2022, 11:11:58 AM"
-      }
-    ],
-    "ratings": [
-      {
-        "rate": 1,
-        "timestamp": "Oct 23, 2022, 11:11:20 AM",
-        "userrating": "honker"
-      },
-      {
-        "rate": -1,
-        "timestamp": "Oct 23, 2022, 11:11:50 AM",
-        "userrating": "seagull"
-      },
-      {
-        "rate": -1,
-        "timestamp": "Oct 23, 2022, 11:12:19 AM",
-        "userrating": "owl"
-      },
-      {
-        "rate": -1,
-        "timestamp": "Oct 23, 2022, 11:12:42 AM",
-        "userrating": "birb"
-      },
-      {
-        "rate": -1,
-        "timestamp": "Oct 23, 2022, 11:13:02 AM",
-        "userrating": "borb"
+        "timestamp": "10:40 PM, lun 10/24/2022",
+        "userrating": "m"
       }
     ],
     "upvoteCount": 1,
-    "downvoteCount": 4,
-    "Niter": 10
+    "downvoteCount": 0,
+    "Niter": 1
+  },
+  "e61fc544-a5ca-475e-b0f9-3e95a8a65ab2": {
+    "idPost": "e61fc544-a5ca-475e-b0f9-3e95a8a65ab2",
+    "postAuthor": "m",
+    "postContent": "m",
+    "postTitle": "m",
+    "rewins": [],
+    "comments": [
+      {
+        "author": "l",
+        "comment": "sSS",
+        "timestamp": "10:40 PM, lun 10/24/2022"
+      }
+    ],
+    "ratings": [
+      {
+        "rate": 1,
+        "timestamp": "10:40 PM, lun 10/24/2022",
+        "userrating": "l"
+      }
+    ],
+    "upvoteCount": 1,
+    "downvoteCount": 0,
+    "Niter": 1
   }
 }

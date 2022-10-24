@@ -350,7 +350,7 @@ public class WinClientMain {
             // Converto la lista ricevuta
         	List<String> users = new Gson().fromJson(usersJson.get("users-list").getAsString(), new TypeToken<List<String>>(){}.getType());
         	// Parso e stampo le informazioni
-            TableList tl = new TableList(2, "USER", "Tags in Common").withUnicode(true);
+            TableList tl = new TableList(2, "USER", "Tags in Common").withUnicode(false);
             for (String info : users) {
                 String[] userTag = info.split("/");
                 String tags = "";
@@ -381,7 +381,7 @@ public class WinClientMain {
         	return;
         }
         TableList tl = new TableList(1,
-                "You have " + listFollowers.size() + " followers").withUnicode(true);
+                "You have " + listFollowers.size() + " followers").withUnicode(false);
         listFollowers.forEach(user -> tl.addRow(user));
         tl.print();
     }
@@ -415,7 +415,7 @@ public class WinClientMain {
             }
         	// Converto la lista ricevuta
         	List<String> users = new Gson().fromJson(followingJson.get("following-list").getAsString(), new TypeToken<List<String>>(){}.getType());
-            TableList tl = new TableList(1,followingJson.get("result-msg").getAsString()).withUnicode(true);
+            TableList tl = new TableList(1,followingJson.get("result-msg").getAsString()).withUnicode(false);
             users.forEach(user -> tl.addRow(user));
             tl.print();
         } else {
@@ -507,7 +507,7 @@ public class WinClientMain {
         	if(blogJson.get("blog") == null) return;
             // Parso le informazioni e le stampo
             List<String> blog = new Gson().fromJson(blogJson.get("blog").getAsString(), new TypeToken<List<String>>(){}.getType());
-            TableList tl = new TableList(3, "POST", "Author", "Title").withUnicode(true);
+            TableList tl = new TableList(3, "POST", "Author", "Title").withUnicode(false);
 
             for (String info : blog) {
             	String[] blogEntry = info.split("/");
@@ -578,7 +578,7 @@ public class WinClientMain {
         	// Converto la lista ricevuta
         	List<String> feed = new Gson().fromJson(feedJson.get("feed").getAsString(), new TypeToken<List<String>>(){}.getType());
             // Stampo la risposta
-            TableList tl = new TableList(3, "POST", "Author", "Title").withUnicode(true);
+            TableList tl = new TableList(3, "POST", "Author", "Title").withUnicode(false);
         	for (String info : feed) {
                 String[] feedEntry = info.split("/");
                 tl.addRow(feedEntry[0], feedEntry[1], feedEntry[2]);
@@ -614,7 +614,7 @@ public class WinClientMain {
         if(postJson.get("result").getAsInt() == 0) {
             // Stampa le informazioni
             System.out.println("< " + postJson.get("result-msg").getAsString());
-            TableList tl = new TableList(1, "POST").withUnicode(true);
+            TableList tl = new TableList(1, "POST").withUnicode(false);
         	tl.addRow(("'" + postJson.get("title").getAsString() + "'"));
             tl.addRow("'" + postJson.get("content").getAsString() + "'");
             tl.addRow("By: " + postJson.get("author").getAsString());
@@ -774,7 +774,7 @@ public class WinClientMain {
             // Se il portafoglio e' vuoto mi fermo
             if (walletJson.get("transaction-list") == null) return;
             // Altrimenti stampo
-            TableList tl = new TableList(2, "WINCOINS", "").withUnicode(true);
+            TableList tl = new TableList(2, "WINCOINS", "").withUnicode(false);
             List<String> transactionList = new Gson().fromJson(walletJson.get("transaction-list").getAsString(),
                     new TypeToken<List<String>>(){}.getType());
 
@@ -814,7 +814,7 @@ public class WinClientMain {
             // Se il portafoglio e' vuoto mi fermo
             if (walletbtcJson.get("transaction-list") == null) return;
             // Altrimenti stampo
-            TableList tl = new TableList(2, "WINCOINS", "").withUnicode(true);
+            TableList tl = new TableList(2, "WINCOINS", "").withUnicode(false);
             List<String> transactionList = new Gson().fromJson(walletbtcJson.get("transaction-list").getAsString(),
                     new TypeToken<List<String>>(){}.getType());
 
@@ -845,7 +845,7 @@ public class WinClientMain {
         try {
             Scanner scan = new Scanner(System.in);
 
-            TableList tl = new TableList(1, "WINSOME the reWardINg SOcial Media!").withUnicode(true);
+            TableList tl = new TableList(1, "WINSOME the reWardINg SOcial Media!").withUnicode(false);
             tl.addRow("WELCOME");
             tl.align(0, TableList.EnumAlignment.CENTER);
             tl.print();

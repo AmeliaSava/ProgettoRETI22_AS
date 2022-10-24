@@ -8,12 +8,12 @@ public class WinTransaction {
 	// Il valore della transazione
 	private double value;
 	// Momento in cui la transazione viene creata
-	private Date timestamp;
-	public WinTransaction(double value) {
+	private String timestamp;
+	public WinTransaction(double value, String timestamp) {
 		this.value = value;
-		this.timestamp = new Date();
+		this.timestamp = timestamp;
 	}
 	// getters
 	public double getValue() { return value; }
-	public Date getTimestamp() { return timestamp; }
+	public String getTimestamp() { return timestamp; }
 }

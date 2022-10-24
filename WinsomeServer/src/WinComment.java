@@ -11,17 +11,17 @@ public class WinComment {
 	// Il testo del commento
 	private String comment;
 	// Il timestamp che indica quando e' stato creato il commento
-	private Date timestamp;
+	private String timestamp;
 	
-	public WinComment(String author, String comment) {
+	public WinComment(String author, String comment, String timestamp) {
 		this.author = author;
 		this.comment = comment;
-		this.timestamp = new Date();
+		this.timestamp = timestamp;
 	}
 
 	// getters
 	public String getAuthor() { return author; }
 	public String getComment() { return comment; }
-	public Date getTimestamp() { return timestamp; }
+	public String getTimestamp() { return timestamp; }
 
 }

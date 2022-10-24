@@ -3,7 +3,13 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -92,7 +98,11 @@ public class WinRewardCalculator implements Runnable {
 				for (int i = post.getComments().size() - 1; i >= 0; i--) {
 					WinComment comment = post.getComments().get(i);
 					// Se il commento e' piu' vecchio dell'ultimo calcolo ricompense mi fermo
-					if (comment.getTimestamp().toInstant().isBefore(lastReward)) break;
+					LocalDateTime ldt = LocalDateTime.parse(comment.getTimestamp(),
+							DateTimeFormatter.ofPattern( "hh:mm a, EEE M/d/uuuu", Locale.ITALY));
+					ZonedDateTime zdt = ldt.atZone(ZoneId.systemDefault());
+					Instant instant = zdt.toInstant();
+					if (instant.isBefore(lastReward)) break;
 					// Aggiungo l'autore
 					commentAuthors.add(comment.getAuthor());
 				}
@@ -102,7 +112,11 @@ public class WinRewardCalculator implements Runnable {
 					//Ho gia' valutato un commento di quest'autore
 					if (contributors.contains(comment.getAuthor())) continue;
 					// Se il commento e' piu' vecchio dell'ultimo calcolo ricompense mi fermo
-					if (comment.getTimestamp().toInstant().isBefore(Instant.now().minusSeconds(time))) break;
+					LocalDateTime ldt = LocalDateTime.parse(comment.getTimestamp(),
+							DateTimeFormatter.ofPattern( "hh:mm a, EEE M/d/uuuu", Locale.ITALY));
+					ZonedDateTime zdt = ldt.atZone(ZoneId.systemDefault());
+					Instant instant = zdt.toInstant();
+					if (instant.isBefore(lastReward)) break;
 					// Quante volte ha commentato l'autore del commento
 					double Cp = Collections.frequency(commentAuthors, comment.getAuthor());
 					// Calcolo i guadagni dai commenti
@@ -116,7 +130,11 @@ public class WinRewardCalculator implements Runnable {
 				for (int i = post.getRatings().size() - 1; i >= 0; i--) {
 					WinRate rate = post.getRatings().get(i);
 					// Se il voto e' piu' vecchio dell'ultimo calcolo ricompense mi fermo
-					if (rate.getTimestamp().toInstant().isBefore(lastReward)) break;
+					LocalDateTime ldt = LocalDateTime.parse(rate.getTimestamp(),
+							DateTimeFormatter.ofPattern( "hh:mm a, EEE M/d/uuuu", Locale.ITALY));
+					ZonedDateTime zdt = ldt.atZone(ZoneId.systemDefault());
+					Instant instant = zdt.toInstant();
+					if (instant.isBefore(lastReward)) break;
 					// Calcolo la somma
 					voteSum += rate.getRate();
 					// Se l'utente ha espresso un voto positivo viene inserito nella lista dei contributori

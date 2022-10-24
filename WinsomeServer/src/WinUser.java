@@ -1,3 +1,8 @@
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.Vector;
@@ -126,8 +131,10 @@ public class WinUser {
      * @param value il valore da attribuire alla transazione
      */
     public synchronized void updateWallet(double value) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, EEE M/d/uuuu").withZone(ZoneId.systemDefault());
+        String timestamp = formatter.format(Instant.now());
     	// Crea una transazione con un certo valore
-    	WinTransaction newT = new WinTransaction(value);
+    	WinTransaction newT = new WinTransaction(value, timestamp);
     	// La aggiunge al portafoglio
     	wallet.add(newT);
     	// Aggiorna il valore totale
