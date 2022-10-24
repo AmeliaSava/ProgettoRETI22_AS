@@ -17,6 +17,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -610,21 +611,19 @@ public class WinClientMain {
         // Converte la risposta
         JsonObject postJson = new Gson().fromJson(showpostResponse, JsonObject.class);
 
-
         if(postJson.get("result").getAsInt() == 0) {
             // Stampa le informazioni
             System.out.println("< " + postJson.get("result-msg").getAsString());
             TableList tl = new TableList(1, "POST").withUnicode(true);
         	tl.addRow(("'" + postJson.get("title").getAsString() + "'"));
             tl.addRow("'" + postJson.get("content").getAsString() + "'");
-            tl.addRow("By: " + postJson.get("author").getAsString() + " ID: " + postJson.get("id").getAsString());
-            tl.addRow("Upvotes " + postJson.get("upvote").getAsInt());
-            tl.addRow("Dowvotes " + postJson.get("downvote").getAsInt());
+            tl.addRow("By: " + postJson.get("author").getAsString());
+            tl.addRow("ID: " + postJson.get("id").getAsString());
+            tl.addRow("Upvotes " + postJson.get("upvote").getAsInt() + "    Dowvotes " + postJson.get("downvote").getAsInt());
         	List<String> comments = new Gson().fromJson(postJson.get("comments").getAsString(), new TypeToken<List<String>>(){}.getType());
         	for(String comment : comments) {
         		tl.addRow(comment);
         	}
-            tl.align(0, TableList.EnumAlignment.CENTER);
         	tl.print();
         } else {
         	System.err.println(postJson.get("result-msg").getAsString());
@@ -755,32 +754,39 @@ public class WinClientMain {
      * @throws IOException
      */
     private void getWallet() throws IOException {
-    	// Nessun utente online
-       	if(currentUser == null) {
-       		System.err.println("ERROR: No user logged in");
-        	return;
+        // Nessun utente online
+        if(currentUser == null) {
+            System.err.println("ERROR: No user logged in");
+            return;
         }
         // Preparo il messaggio
         JsonObject message = new JsonObject();
         message.addProperty("operation", "wallet");
         message.addProperty("user", currentUser);
         WinUtils.send(message.toString(), clientSocket);
-	  	// Ricevo la risposta
+        // Ricevo la risposta
         String walletResponse = WinUtils.receive(clientSocket);
         // Converto la risposta
-	  	JsonObject walletJson = new Gson().fromJson(walletResponse, JsonObject.class);
-        // Stampo il risultato
-	  	if(walletJson.get("result").getAsInt() == 0) {
-	  		System.out.println("< " + walletJson.get("result-msg").getAsString());
-            List<String> transactionList = new Gson().fromJson(walletJson.get("transaction-list").getAsString(), new TypeToken<List<String>>(){}.getType());
-	      	
-	      	for(String transaction : transactionList) {
-	      		String[] values = transaction.split("/");
-	      		System.out.printf("%.2f\n", Double.parseDouble(values[0]));
-	      		System.out.println(values[1]);
-	      	}
-	      	System.out.printf("< TOTAL %.2f\n", walletJson.get("wallet-tot").getAsDouble());
-	      } else System.out.println(walletJson.get("result-msg").getAsString());
+        JsonObject walletJson = new Gson().fromJson(walletResponse, JsonObject.class);
+
+        if(walletJson.get("result").getAsInt() == 0) {
+            System.out.println("< " + walletJson.get("result-msg").getAsString());
+            // Se il portafoglio e' vuoto mi fermo
+            if (walletJson.get("transaction-list") == null) return;
+            // Altrimenti stampo
+            TableList tl = new TableList(2, "WINCOINS", "").withUnicode(true);
+            List<String> transactionList = new Gson().fromJson(walletJson.get("transaction-list").getAsString(),
+                    new TypeToken<List<String>>(){}.getType());
+
+            for(String transaction : transactionList) {
+                String[] values = transaction.split("/");
+                DecimalFormat df = new DecimalFormat("0.00");
+                double value = Double.parseDouble(values[0]);
+                tl.addRow(df.format(value), values[1]);
+            }
+            tl.print();
+            System.out.printf("< TOTAL %.2f\n", walletJson.get("wallet-tot").getAsDouble());
+        } else System.out.println(walletJson.get("result-msg").getAsString());
     }
 
     /**
@@ -802,17 +808,23 @@ public class WinClientMain {
         String walletbtcResponse = WinUtils.receive(clientSocket);
         // Converto la risposta
         JsonObject walletbtcJson = new Gson().fromJson(walletbtcResponse, JsonObject.class);
-        // Stampo il risultato
+
         if(walletbtcJson.get("result").getAsInt() == 0) {
             System.out.println("< " + walletbtcJson.get("result-msg").getAsString());
+            // Se il portafoglio e' vuoto mi fermo
+            if (walletbtcJson.get("transaction-list") == null) return;
+            // Altrimenti stampo
+            TableList tl = new TableList(2, "WINCOINS", "").withUnicode(true);
             List<String> transactionList = new Gson().fromJson(walletbtcJson.get("transaction-list").getAsString(),
                     new TypeToken<List<String>>(){}.getType());
 
             for(String transaction : transactionList) {
                 String[] values = transaction.split("/");
-                System.out.printf("%.2f\n", Double.parseDouble(values[0]));
-                System.out.println(values[1]);
+                DecimalFormat df = new DecimalFormat("0.00");
+                double value = Double.parseDouble(values[0]);
+                tl.addRow(df.format(value), values[1]);
             }
+            tl.print();
             System.out.printf("< TOTAL %.2f\n", walletbtcJson.get("wallet-tot").getAsDouble());
         } else System.out.println(walletbtcJson.get("result-msg").getAsString());
     }
@@ -833,7 +845,8 @@ public class WinClientMain {
         try {
             Scanner scan = new Scanner(System.in);
 
-            TableList tl = new TableList(1, "Welcome to WINSOME the reWardINg SOcial Media!").withUnicode(true);
+            TableList tl = new TableList(1, "WINSOME the reWardINg SOcial Media!").withUnicode(true);
+            tl.addRow("WELCOME");
             tl.align(0, TableList.EnumAlignment.CENTER);
             tl.print();
             System.out.println("Login or register to start interacting with other users");
@@ -987,8 +1000,55 @@ public class WinClientMain {
                 		winClient.ratePost(command[1], command[2]);
                         break;
                     case "help":
-                        System.out.println("Type one of these commands:");
+                        System.out.println("Type one of these commands:\n");
                         System.out.println("register <username> <password> <tag1 tag2... tag5>");
+                        System.out.println("For registering a new user, you can specify max 5 tags to let other users"
+                        + " know your interests, your username must be unique\n");
+                        System.out.println("login <username> <password>");
+                        System.out.println("To login with you username and password after you registered\n");
+                        System.out.println("logout");
+                        System.out.println("To logout, if you want to end your sessione use -> exit\n");
+                        System.out.println("list users");
+                        System.out.println("To see other users who share your interests\n");
+                        System.out.println("list followers");
+                        System.out.println("To see who is following you\n");
+                        System.out.println("list following");
+                        System.out.println("To see the users you are following\n");
+                        System.out.println("follow <username>");
+                        System.out.println("To follow another user\n");
+                        System.out.println("unfollow <username>");
+                        System.out.println("To stop following another user\n");
+                        System.out.println("blog");
+                        System.out.println("To view all the posts in your blog\n");
+                        System.out.println("post \"<title>\" \"<content>\"");
+                        System.out.println("To create a new post, the title can be max 20 characters and the content " +
+                                "can be max 500 characters long\n");
+                        System.out.println("show feed");
+                        System.out.println("To see all the posts in your feed\n");
+                        System.out.println("show post <id>");
+                        System.out.println("To see the post related to a certain id\n");
+                        System.out.println("delete <id>");
+                        System.out.println("To delete the post related to the id, if you are not the author of the post" +
+                                "you cannot delete the post.\n" +
+                                "If you rewinned the post, the post will be only delete from your blog\n");
+                        System.out.println("rewin <id>");
+                        System.out.println("To rewin a post, that is publishing another author post in your blog\n");
+                        System.out.println("rate <id> <vote>");
+                        System.out.println("To rate a post, the vote must be <+1> or <-1>, you cannot vote a post " +
+                                " with the same value more than once.\n" +
+                                "You can change your opinion and vote again with an opposite value\n" +
+                                "You also cannot rate your own post or posts that are not in your feed\n");
+                        System.out.println("comment");
+                        System.out.println("To add a comment on a post. You cannot add comment on your posts or posts" +
+                                "that are not in your feed\n");
+                        System.out.println("wallet");
+                        System.out.println("To get your wallet\n");
+                        System.out.println("wallet btc");
+                        System.out.println("To get your wallet in bitcoins\n");
+                        System.out.println("exit");
+                        System.out.println("To end your sessions." +
+                                " Attention! you will be automatically logged out if you exit while logged in");
+
                     	break;
 				default:
                         System.out.println("Command " + command[0] + " not recognized");

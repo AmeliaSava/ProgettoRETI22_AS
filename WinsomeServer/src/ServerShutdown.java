@@ -12,6 +12,8 @@ public class ServerShutdown extends Thread {
     @Override
     public void run() {
         System.out.println("Closing server...");
+        // Smetto di accettare richieste
+        winServer.setShutdown();
         // Salvo lo stato del server e interrompo i thread
         winServer.stopStorageKeeper();
         winServer.stopMulticast();

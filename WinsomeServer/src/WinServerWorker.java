@@ -11,7 +11,7 @@ import java.util.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-/*
+/**
  * Classe che implementa il worker che esegue le operazioni richieste dai client al server.
  * Parsa la richiesta del client e poi prepara una risposta che allega alla chiave che gli viene passata
  * dal server. Interagisce con lo storage per interrogarlo sullo stato degli utenti e dei post e apporta le
@@ -375,35 +375,37 @@ public class WinServerWorker implements Runnable {
     }
 
     /**
-     *
-     * @param currentUser
-     * @param key
+     * Recupera i post dal blog di un utente
+     * @param currentUser L'utente che vuole vedere il suo blog
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
      */
 	public void viewBlog(String currentUser, SelectionKey key) {
         System.out.println("User " + currentUser + " has requested for their blog");
-
+        // Recupera l'utente dallo storage
         WinUser curUser = serverStorage.getUser(currentUser);
-    	
+    	// Prepara il json per la risposta
     	JsonObject blogJson = new JsonObject();
-
+        // Prepara la lista per la risposta
     	List<String> blog = new ArrayList<String>();
     	
         String info = null;
         synchronized (curUser.getBlog()) {
+            // Per ogni id del blog recupero il post associato
             for (UUID idPost : curUser.getBlog()) {
                 WinPost curPost = serverStorage.getPost(idPost);
-
+                // Se il post non esiste lo marco come cancellato
                 if (curPost == null) {
                     info = "[deleted]/[deleted]/[deleted]";
                     blog.add(info);
                     continue;
                 }
-
+                // Lo aggiungo alla lista da inviare
                 info = curPost.getIdPost().toString();
                 info = info.concat("/" + curPost.getPostAuthor() + "/" + curPost.getPostTitle());
                 blog.add(info);
             }
         }
+        // Preparo la risposta
         if(blog.size() > 0) {
           	blogJson.addProperty("result", 0);
         	blogJson.addProperty("result-msg", "Blog: ");
@@ -412,24 +414,29 @@ public class WinServerWorker implements Runnable {
         	blogJson.addProperty("result", 0);
         	blogJson.addProperty("result-msg", "Your blog is still empty, make a new post!");
         }
-        
+        // Allego il messaggio alla chiave
         key.attach(blogJson.toString());
     }
-    
+
+    /**
+     * Crea un nuovo post e lo inserisce nel feed di tutti i follower dell'autore
+     * @param author L'autore del post
+     * @param title Il titolo del post
+     * @param text Il testo del post
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
     public void createPost(String author, String title, String text, SelectionKey key) {
-
+        // Recupero l'utente che ha fatto la richiesta
         WinUser curUser = serverStorage.getUser(author);
-
+        // Preparo il json per la risposta
         JsonObject postJson = new JsonObject();
-
+        // Creo un nuovo post e lo inserisco nello storage
         WinPost post = new WinPost(author, title, text);
         serverStorage.addNewPost(post);
-        
         // Aggiungo l'id del post alla lista contenuta nell'utente per poter ricostruire il suo blog
         curUser.addPostToBlog(post.getIdPost());
 
         // Aggiungo il post al feed di ogni follower
-        // TODO follower null?
         synchronized (curUser.getfollowers()) {
             for (String user : curUser.getfollowers()) {
                 WinUser follower = serverStorage.getUser(user);
@@ -437,33 +444,39 @@ public class WinServerWorker implements Runnable {
             }
         }
         System.out.println(author + " created a new post");
-    	
+    	// Preparo il messaggio
     	postJson.addProperty("result", 0);
     	postJson.addProperty("result-msg", "You created a new post with ID " + post.getIdPost());
-        
+        // Allego il messaggio alla chiave
         key.attach(postJson.toString());
     }
-    
-    public void showFeed(String currentUser, SelectionKey key) {
 
+    /**
+     * Recupera i post dal feed di un utente
+     * @param currentUser L'utente che ha richiesto di vedere il proprio feed
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
+    public void showFeed(String currentUser, SelectionKey key) {
         System.out.println("User " + currentUser + " has requested for their feed");
+        // Recupero l'utente che ha fatto la richiesta
     	WinUser curUser = serverStorage.getUser(currentUser);
-    	
+    	// Preparo il json per il messaggio
     	JsonObject feedJson = new JsonObject();
-    	
+    	// Preparo la lista da inviare
     	List<String> feed = new ArrayList<String>();
 
         String info = null;
         synchronized (curUser.getFeed()) {
+            // Dagli id recupero i post associati
             for (UUID idPost : curUser.getFeed()) {
                 WinPost curPost = serverStorage.getPost(idPost);
-
+                // Se il post non esiste lo segno come cancellato
                 if (curPost == null) {
                     info = "[deleted]/[deleted]/[deleted]";
                     feed.add(info);
                     continue;
                 }
-
+                // Inserico le informazioni nella lista
                 info = curPost.getIdPost().toString();
                 info = info.concat("/" + curPost.getPostAuthor() + "/" + curPost.getPostTitle());
                 feed.add(info);
@@ -478,14 +491,21 @@ public class WinServerWorker implements Runnable {
         	feedJson.addProperty("result", 0);
         	feedJson.addProperty("result-msg", "There are no posts on your feed.");
         }
-        
+        // Allego il messaggio alla chiave
         key.attach(feedJson.toString());
     }
-    
+
+    /**
+     * Recupera un post dal suo id
+     * @param username L'utente che ha richiesto di vedere il post
+     * @param postID L'id del post
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
     public void showPost(String username, String postID, SelectionKey key) {
         System.out.println("Showing post " + postID + " for " + username);
+        // Preparo il json per la risposta
         JsonObject postJson = new JsonObject();
-    	
+    	// Converto l'id in UUID
     	UUID CurPostID;
     	try {
     		CurPostID = UUID.fromString(postID); 
@@ -494,15 +514,14 @@ public class WinServerWorker implements Runnable {
         	sendError(postJson, "Post ID not valid", key);
             return;
     	}
-    	
+    	// Recupero il post
     	WinPost curPost = serverStorage.getPost(CurPostID);
-
     	// Il post richiesto non esiste
         if (curPost == null) {
             sendError(postJson, "The post you requested doesn't exist", key);
             return;
         }
-
+        // Preparo il messaggio recuperando le informazioni dal post
         synchronized (curPost) {
             postJson.addProperty("result", 0);
             postJson.addProperty("result-msg", "Post:");
@@ -512,9 +531,8 @@ public class WinServerWorker implements Runnable {
             postJson.addProperty("id", curPost.getIdPost().toString());
             postJson.addProperty("upvote", curPost.getUpvoteCount());
             postJson.addProperty("downvote", curPost.getDownvoteCount());
-
+            // Preparo la lista dei commenti
             List<String> comments = new ArrayList<String>();
-
             String info;
             for (WinComment comment : curPost.getComments()) {
                 info = comment.getComment() + " by " + comment.getAuthor() + " " + comment.getTimestamp();
@@ -522,15 +540,23 @@ public class WinServerWorker implements Runnable {
             }
             postJson.addProperty("comments", WinUtils.prepareJson(comments));
         }
-
+        // Allego il messaggio alla chiave
     	key.attach(postJson.toString());
     }
-    
-    public void deletePost(String username, String postID, SelectionKey key) {
 
+    /**
+     * Cancella un post dalla memoria, dal blog del suo autore e dal feed di tutti i suoi follower, elimina anche tutti
+     * i rewin. Se invece il post e' un rewin lo elimina semplicemente dal blog di chi ha fatto il rewin.
+     * Un utente puo' cancellare un post solo se ne e' l'autore.
+     * @param username L'utente che richiede la cancellazione
+     * @param postID L'id del post da cancellare
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
+    public void deletePost(String username, String postID, SelectionKey key) {
         System.out.println("Deleting post " + postID + " for " + username);
+        // Preparo il json per il messaggio
         JsonObject deleteJson = new JsonObject();
-    	
+    	// Controllo che l'id sia valido
     	UUID curPostID;
     	try {
     		curPostID = UUID.fromString(postID);
@@ -539,17 +565,16 @@ public class WinServerWorker implements Runnable {
         	sendError(deleteJson, "Post ID not valid", key);
             return;
     	}
-    	
+    	// Recupero il post e l'utente
     	WinPost curPost = serverStorage.getPost(curPostID);
     	WinUser curUser = serverStorage.getUser(username);
-
+        // Il post non esiste
     	if(curPost == null) {
     		sendError(deleteJson, "The post you are trying to delete doesn't exist", key);
     		return;
     	}
 
     	synchronized (curPost) {
-
             // Se l'utente non e' autore del post
             if (!curPost.getPostAuthor().equals(username)) {
                 // Ma ha il post nel suo blog, allora l'utente vuole cancellare un rewin
@@ -567,19 +592,17 @@ public class WinServerWorker implements Runnable {
                 return;
             }
 
-            // rimuovo tutti i rewin
+            // Rimuovo tutti i rewin
             for (String user : curPost.getRewins()) {
                 serverStorage.getUser(user).removePostBlog(curPostID);
             }
-
-            //TODO
+            // Rimuovo il post dal blog dell'utente e dallo storage
             synchronized (curUser.getBlog()) {
-                // Rimuovo il post dal blog dell'utente
                 curUser.getBlog().remove(curPostID);
                 serverStorage.removePost(curPostID);
             }
         }
-    	//rimuovo il post dal feed di tutti i suoi followers
+    	// Rimuovo il post dal feed di tutti i suoi followers
         synchronized (curUser.getfollowers()) {
             for (String user : curUser.getfollowers()) {
                 synchronized (serverStorage.getUser(user).getFeed()) {
@@ -589,16 +612,22 @@ public class WinServerWorker implements Runnable {
         }
     	deleteJson.addProperty("result", 0);  
     	deleteJson.addProperty("result-msg", "The post was successfully deleted!");
-        
+        // Allega la risposta alla chiave
         key.attach(deleteJson.toString());
     }
-    
+
+    /**
+     * Effettua il rewin di un post aggiungendone l'id al blog di un utente, e' possibile effettuare il rewin di un
+     * post solo se l'utente ce l'ha nel proprio feed
+     * @param username L'utente che vuole fare il rewin
+     * @param postID l'id del post
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
     public void rewinPost(String username, String postID, SelectionKey key) {
-
         System.out.println("Rewin post " + postID + " for " + username);
-
+        // Preparo il json per la risposta
     	JsonObject rewinJson = new JsonObject();
-
+        // Controllo se l'id e' valido
     	UUID CurPostID;
     	try {
     		CurPostID = UUID.fromString(postID); 
@@ -607,23 +636,24 @@ public class WinServerWorker implements Runnable {
         	sendError(rewinJson, "Post ID not valid", key);
             return;
     	}
-    	
+    	// Recupero il post e l'utente
     	WinPost curPost = serverStorage.getPost(CurPostID);    	
     	WinUser curUser = serverStorage.getUser(username);
-    	  	
+    	// Il post non esiste
     	if(curPost == null) {
     		sendError(rewinJson, "The post you tried to rewin does not exist", key);
     		return;
     	}
 
     	synchronized (curUser.getFeed()) {
+            // Controllo se l'utente ha il post nel suo feed
             if (!curUser.getFeed().contains(CurPostID)) {
                 sendError(rewinJson, "The post you tried to rewin is not in your feed, you can only rewin post that are in your feed.", key);
                 return;
             }
         }
 
-        // Aggiungo l'utente alla lista dei rewin, se ha gia' rewinnato il post error
+        // Aggiungo l'utente alla lista dei rewin, se ha gia' rewinnato il post mando un errore
         if(curPost.addRewin(username) != 0) {
             sendError(rewinJson, "You already rewinned this post", key);
             return;
@@ -634,16 +664,23 @@ public class WinServerWorker implements Runnable {
 
     	rewinJson.addProperty("result", 0);
     	rewinJson.addProperty("result-msg", "You rewinned the post");
-        
+        // Allego la risposta alla chiave
         key.attach(rewinJson.toString());
     }
-    
+
+    /**
+     * Aggiunge un voto ad un post. Un utente puo' votare un post solo una volta con lo stesso valore e solo
+     * se ha il post nel suo feed
+     * @param uservoting L'utente che lascia il voto
+     * @param postID L'id del post
+     * @param vote Il valore del voto
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
     public void ratePost(String uservoting, String postID, int vote, SelectionKey key) {
-
         System.out.println("Rating post " + postID + " " + vote + " for " + uservoting);
-
+        // Preparo il json per mandare la risposta
         JsonObject rateJson = new JsonObject();
-    	
+    	// Controllo se l'id del post e' valido
     	UUID CurPostID;
     	try {
     		CurPostID = UUID.fromString(postID); 
@@ -652,15 +689,15 @@ public class WinServerWorker implements Runnable {
         	sendError(rateJson, "Post ID not valid", key);
             return;
     	}
-    	
+    	// Recupro il post e l'utente
     	WinPost postToRate = serverStorage.getPost(CurPostID);
     	WinUser curUser = serverStorage.getUser(uservoting);
-    	
+    	// Il post non esiste
     	if(postToRate == null) {
     		sendError(rateJson, "The post you tried to rate does not exist", key);
             return;
     	}
-
+        // Controllo se l'utente ha il post nel suo feed
     	synchronized (curUser.getFeed()) {
             if (!curUser.getFeed().contains(CurPostID)) {
                 sendError(rateJson, "The post is not in your feed. You cannot rate a post that is not in your feed", key);
@@ -683,13 +720,22 @@ public class WinServerWorker implements Runnable {
 
     	rateJson.addProperty("result", 0);  
     	rateJson.addProperty("result-msg", "Your vote was added to the post!");
-        
+        // Allego la risposta alla chiava
         key.attach(rateJson.toString());	
     }
-    
+
+    /**
+     * Aggiunge un commento al post. Un utente puo' lasciare un commento solo se non e' l'autore del post e se ha il
+     * post nel suo feed
+     * @param usercommenting L'utente che commenta
+     * @param postID L'id del post
+     * @param comment Il testo del commento
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
     public void addComment(String usercommenting, String postID, String comment, SelectionKey key) {
+        // Preparo il json per la risposta
     	JsonObject commentJson = new JsonObject();
-    	
+    	// Controllo se l'id e' valido
     	UUID CurPostID;
     	try {
     		CurPostID = UUID.fromString(postID); 
@@ -698,15 +744,15 @@ public class WinServerWorker implements Runnable {
         	sendError(commentJson, "Post ID not valid", key);
             return;
     	}
-    	
+    	// Recupero il post e l'utente
     	WinPost postToComment = serverStorage.getPost(CurPostID);
     	WinUser curUser = serverStorage.getUser(usercommenting);
-
+        // Il post non esiste
     	if(postToComment == null) {
     		sendError(commentJson, "The post you tried to comment does not exist", key);
     		return;
     	}
-
+        // Controllo che il post sia nel feed dell'utente che vuole lasciare il commento
         synchronized (curUser.getFeed()) {
             if (!curUser.getFeed().contains(CurPostID)) {
                 sendError(commentJson, "The post is not in your feed. You can comment on a post only if it is in your feed", key);
@@ -720,73 +766,91 @@ public class WinServerWorker implements Runnable {
                 sendError(commentJson, "You can't rate your own post", key);
                 return;
             }
-
+            // Aggiungo il commento al post
             postToComment.addComment(usercommenting, comment);
         }
 
     	commentJson.addProperty("result", 0);  
     	commentJson.addProperty("result-msg", "Your comment was added to the post!");
-        
+        // Allego la risposta alla chiave
         key.attach(commentJson.toString());
     }
-    
-    public void getWallet(String username, SelectionKey key) {
-    	
-    	JsonObject walletJson = new JsonObject();
-    	
-    	WinUser curUser = serverStorage.getUser(username);
-    	 	
-    	List<String> transactionList = new ArrayList<String>();
 
+    /**
+     * Recupare le informazioni sul portafoglio dell'utente
+     * @param username L'utente che ha fatto la richiesta
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     */
+    public void getWallet(String username, SelectionKey key) {
+        // Preparo il json per la risposta
+    	JsonObject walletJson = new JsonObject();
+    	// Recupero l'utente
+    	WinUser curUser = serverStorage.getUser(username);
+    	// Preparo la lista da inviare
+    	List<String> transactionList = new ArrayList<String>();
+        // Recupero le informazioni dal portafoglio
     	synchronized (curUser.getWallet()) {
+            // Il portafoglio e' vuoto
             if (curUser.getWallet().size() == 0) {
-                sendError(walletJson, "Your wallet is empty", key);
+                walletJson.addProperty("result", 0);
+                walletJson.addProperty("result-msg", "Your wallet is empty");
+                key.attach(walletJson.toString());
                 return;
             }
-
+            // Salvo le trasazioni
             for (WinTransaction transaction : curUser.getWallet()) {
                 String t = transaction.getValue() + "/" + transaction.getTimestamp().toString();
                 transactionList.add(t);
             }
-
+            // Salvo il totale
             walletJson.addProperty("wallet-tot", curUser.getWalletTot());
         }
        	walletJson.addProperty("result", 0);
-		walletJson.addProperty("result-msg", "Your wallet: ");
+		walletJson.addProperty("result-msg", "WALLET");
     	walletJson.addProperty("transaction-list", WinUtils.prepareJson(transactionList));
-    	key.attach(walletJson.toString());
+    	// Allego il messaggio alla chiave
+        key.attach(walletJson.toString());
     }
-    
-    public void getWalletBitcoin(String username, SelectionKey key) {
-    	
-    	JsonObject walletJson = new JsonObject();
-    	
-    	WinUser curUser = serverStorage.getUser(username);
 
+    /**
+     * Recupera le informazioni sul portafoglio dell'utente applicando un tasso di cambio generato casualmente tramite
+     * URL per simulare il cambio in bitcoin
+     * @param username L'utente che ha fatto la richiesta
+     * @param key La chiave dove viene attaccato il messaggio con l'esito
+     * @throws MalformedURLException
+     * @throws IOException
+     */
+    public void getWalletBitcoin(String username, SelectionKey key) {
+        // Preparo il json per la risposta
+    	JsonObject walletJson = new JsonObject();
+    	// Recupero l'utente
+    	WinUser curUser = serverStorage.getUser(username);
+        // La lista dove salvo le informazioni
     	List<String> transactionList = new ArrayList<String>();
-    	
+    	// Informazioni per il tasso di cambio e il totale del portafoglio
     	double exchangeRate = 0;
     	double walletTotBitcoin = 0;
 
     	try {
+            // Mi connetto all'URL
 			URL url = new URL("https://www.random.org/integers/?num=1&min=1&max=2000&col=1&base=10&format=plain&rnd=new");
             String number = null;
+            // Leggo il valore
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream(), StandardCharsets.UTF_8))) {
 				String inputLine;
 				while((inputLine = in.readLine()) != null) {
 					number = inputLine;
 				}
-
+                // Se non ho letto niente c'e' stato un errore
 				if(number == null) {
                     System.err.println("ERROR: reading from URL");
 				    return;
                 }
-
+                // Applico il tasso di cambio
                 exchangeRate = Double.parseDouble(number);
                 exchangeRate = exchangeRate * 0.0001;
 
                 System.out.println("Current exchange rate: " + exchangeRate);
-
 			} catch (IOException ioe) {
 			    System.err.println("ERROR: reading from URL");
 			    ioe.printStackTrace(System.err);
@@ -798,13 +862,14 @@ public class WinServerWorker implements Runnable {
 		}
 
     	synchronized (curUser.getWallet()) {
+            // Se il portafoglio e' vuoto
             if (curUser.getWallet().size() == 0) {
                 walletJson.addProperty("result", -1);
                 walletJson.addProperty("result-msg", "Your wallet is empty");
                 key.attach(walletJson.toString());
                 return;
             }
-
+            // Altrimenti mando i valori convertiti con il tasso di cambio
             for (WinTransaction transaction : curUser.getWallet()) {
                 String t = (transaction.getValue() * exchangeRate) + "/" + transaction.getTimestamp().toString();
                 transactionList.add(t);
@@ -816,13 +881,19 @@ public class WinServerWorker implements Runnable {
 		walletJson.addProperty("result-msg", "Your wallet: ");    	
     	walletJson.addProperty("wallet-tot", walletTotBitcoin);
     	walletJson.addProperty("transaction-list", WinUtils.prepareJson(transactionList));
+        // Allego il messaggio alla chiave
     	key.attach(walletJson.toString());
     }
-    
+
+    /**
+     * Prepara un messaggio di errore e lo allega alla chiave
+     * @param jsonObj
+     * @param errorMsg
+     * @param key
+     */
     public void sendError(JsonObject jsonObj, String errorMsg, SelectionKey key) {
     	jsonObj.addProperty("result", -1);
     	jsonObj.addProperty("result-msg", errorMsg);
-        
         key.attach(jsonObj.toString());
     }
 }

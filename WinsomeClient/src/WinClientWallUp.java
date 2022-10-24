@@ -17,13 +17,13 @@ public class WinClientWallUp implements Runnable{
     // L'indirizzo multicast
     InetAddress udpAdd;
     // Variabile per fermare il thread
-    private volatile static boolean stop;
+    private volatile boolean stop;
 
     /**
      * Costruttore, setta l'indirizzo e si unisce al gruppo di multicast
-     * @param UDPport
-     * @param multicastAdd
-     * @param print
+     * @param UDPport La porta per la comunicazione multicast
+     * @param multicastAdd L'indirizzo per la comunicazione multicast
+     * @param print Variabile per attivare la stampa
      */
     @SuppressWarnings("deprecation")
     public WinClientWallUp(int UDPport, String multicastAdd, AtomicBoolean print) {
@@ -38,7 +38,7 @@ public class WinClientWallUp implements Runnable{
             System.err.println("ERROR: unknown host multicast " + e.getMessage());
             e.printStackTrace();
         }
-        // Mi unisco al gurppo di multicast
+        // Mi unisco al gruppo di multicast
         try {
             this.ms = new MulticastSocket(UDPport);
             ms.joinGroup(udpAdd);
@@ -49,15 +49,11 @@ public class WinClientWallUp implements Runnable{
         }
     }
 
-
     @Override
     public void run() {
-
         while (!stop) {
-            // Preparo il byte array per ricever il messaggio
+            // Ricevo il messaggio
             byte[] message = new byte[50];
-
-            // Mi connetto al gruppo di multicast
             DatagramPacket dp = new DatagramPacket (message, message.length);
             try {
                 ms.receive(dp);
@@ -73,13 +69,18 @@ public class WinClientWallUp implements Runnable{
         }
     }
 
+    /**
+     * Ferma il ciclo, lascia il gruppo e chiude il socket, sbloccando la receive
+     */
+    @SuppressWarnings("deprecation")
     public void stopWallUp(){
         stop = true;
         try {
+            // Lascio il gruppo e chiudo il socket
             ms.leaveGroup(udpAdd);
             ms.close();
         } catch (IOException e) {
-            System.err.println("ERROR: multicast " + e.getMessage());
+            System.err.println("ERROR: closing multicast" + e.getMessage());
             e.printStackTrace();
         }
     }
