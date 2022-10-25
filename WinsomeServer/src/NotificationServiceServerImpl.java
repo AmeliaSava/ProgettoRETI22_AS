@@ -39,7 +39,7 @@ public class NotificationServiceServerImpl extends RemoteObject implements Notif
      * @param follower l'utente che ha seguito
      * @throws RemoteException
      */
-    public void follow(String username, String follower) throws RemoteException {
+    public synchronized void follow(String username, String follower) throws RemoteException {
         NotificationServiceClient client = (NotificationServiceClient) registeredClients.get(username);
         client.notifyFollow(username, follower);
     }
@@ -50,7 +50,7 @@ public class NotificationServiceServerImpl extends RemoteObject implements Notif
      * @param unfollower l'utente che ha smesso di seguire
      * @throws RemoteException
      */
-    public void unfollow(String username, String unfollower) throws RemoteException {
+    public synchronized void unfollow(String username, String unfollower) throws RemoteException {
         NotificationServiceClient client = (NotificationServiceClient) registeredClients.get(username);
         client.notifyUnfollow(username, unfollower);
     }

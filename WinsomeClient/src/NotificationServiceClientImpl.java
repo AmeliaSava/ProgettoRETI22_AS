@@ -19,13 +19,13 @@ public class NotificationServiceClientImpl implements NotificationServiceClient 
     }
 
     @Override
-    public void notifyFollow(String username, String follower) throws RemoteException {
+    public synchronized void notifyFollow(String username, String follower) throws RemoteException {
         System.out.println(follower + " has started following you!");
         listFollowers.add(follower);
     }
 
     @Override
-    public void notifyUnfollow(String username, String unfollower) throws RemoteException {
+    public synchronized void notifyUnfollow(String username, String unfollower) throws RemoteException {
         System.out.println(unfollower + " has stopped following you!");
         listFollowers.remove(unfollower);
     }
