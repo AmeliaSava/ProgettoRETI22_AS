@@ -71,6 +71,14 @@ public class WinPost {
     }
 
     /**
+     * Rimuove un utente dalla lista dei rewin
+     * @param user L'utente da rimuover
+     */
+    public void removeRewin(String user) {
+        rewins.remove(user);
+    }
+
+    /**
      * Aggiunge un voto controllando che l'utente non abbia gia' votato con lo stesso voto e modifica le variabili
      * che tengono il conto dei voti
       * @param uservoting utente che vota

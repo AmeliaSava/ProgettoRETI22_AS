@@ -17,8 +17,17 @@
     "feed": [
       "e61fc544-a5ca-475e-b0f9-3e95a8a65ab2"
     ],
-    "wallet": [],
-    "walletTot": 0.0
+    "wallet": [
+      {
+        "value": 0.8317766166719344,
+        "timestamp": "10:35 PM, lun 10/24/2022"
+      },
+      {
+        "value": 0.5545177444479562,
+        "timestamp": "10:35 PM, lun 10/24/2022"
+      }
+    ],
+    "walletTot": 1.3862943611198906
   },
   "m": {
     "username": "m",
@@ -38,7 +47,16 @@
     "feed": [
       "790756f1-ca22-479c-9935-e63e7d8bdfc8"
     ],
-    "wallet": [],
-    "walletTot": 0.0
+    "wallet": [
+      {
+        "value": 0.5545177444479562,
+        "timestamp": "10:35 PM, lun 10/24/2022"
+      },
+      {
+        "value": 0.8317766166719344,
+        "timestamp": "10:35 PM, lun 10/24/2022"
+      }
+    ],
+    "walletTot": 1.3862943611198906
   }
 }

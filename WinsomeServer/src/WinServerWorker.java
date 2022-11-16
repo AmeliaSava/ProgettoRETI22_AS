@@ -582,6 +582,15 @@ public class WinServerWorker implements Runnable {
                     if (curUser.getBlog().contains(curPostID)) {
                         // Cancello il post solo dal blog dell'utente e mando la risposta
                         curUser.removePostBlog(curPostID);
+                        curPost.removeRewin(username);
+                        // Rimuovo il rewin dal feed di tutti follower
+                        synchronized (curUser.getfollowers()) {
+                            for (String user : curUser.getfollowers()) {
+                                synchronized (serverStorage.getUser(user).getFeed()) {
+                                    serverStorage.getUser(user).getFeed().remove(curPostID);
+                                }
+                            }
+                        }
                         deleteJson.addProperty("result", 0);
                         deleteJson.addProperty("result-msg", "Your rewin was successfully deleted!");
                         key.attach(deleteJson.toString());
